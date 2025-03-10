@@ -34,7 +34,10 @@ A lightweight JavaScript framework for building reactive interfaces.
 
 **Optional:**
 
-`npm i @hellajs/store @hellajs/resource @hellajs/router`
+`npm i @hellajs/store`
+`npm i @hellajs/resource`
+`npm i @hellajs/router`
+
 
 ## Core Concepts
 
