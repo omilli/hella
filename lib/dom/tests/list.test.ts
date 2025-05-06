@@ -56,8 +56,6 @@ describe("list", () => {
     const node = document.createElement("div");
     parent.appendChild(node);
     const cleanup = mock(() => { });
-    const context = { cleanup };
-    (node as any)._context = context;
     const item: ListItem = { node, effectCleanup: cleanup };
     delegator.removeHandlersForElement = mock(() => { });
     removeItem(item, parent, delegator as any);

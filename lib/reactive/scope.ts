@@ -5,6 +5,8 @@ export interface Scope {
   signals: Set<Signal<unknown>>;
   cleanup: () => void;
   parent?: Scope;
+  eventElements?: Set<HTMLElement>;
+  rootSelector?: string;
 }
 
 let currentScope: Scope | null = null;

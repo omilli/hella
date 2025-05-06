@@ -1,6 +1,6 @@
 import { effect, type Scope } from "../reactive";
 import { renderFunction, rootRegistry } from "../render";
-import type { HTMLTagName, VNode } from "../types";
+import type { HTMLTagName, VNode, VNodeValue } from "../types";
 
 const booleanAttributes = new Set([
   "disabled", "checked", "readonly", "required", "autofocus", "selected", "multiple", "hidden", "open"
@@ -42,13 +42,13 @@ export function createElement(
   const keys = Object.keys(props);
   const keyLen = keys.length;
 
-  let context = props._context as Scope;
+  let context = vNode._scope as Scope;
 
   for (let i = 0; i < keyLen; i++) {
     const key = keys[i];
     const value = props[key];
 
-    if (key === 'key' || key === '_context') {
+    if (key === 'key') {
       continue;
     }
 
@@ -59,6 +59,9 @@ export function createElement(
           context.effects.add(() => {
             delegator?.removeHandlersForElement(element);
           });
+          if (context.eventElements) {
+            context.eventElements.add(element);
+          }
         }
       } else {
         effect(() => {
@@ -66,7 +69,7 @@ export function createElement(
         });
       }
     } else {
-      setAttribute(element, key, value);
+      setAttribute(element, key, value as VNodeValue);
     }
   }
 
@@ -86,7 +89,7 @@ export function createElement(
 }
 
 
-function setAttribute(element: HTMLElement, key: string, value: any) {
+function setAttribute(element: HTMLElement, key: string, value: VNodeValue) {
   if (booleanAttributes.has(key)) {
     if (value) {
       element.setAttribute(key, "");

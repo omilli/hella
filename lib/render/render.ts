@@ -1,6 +1,6 @@
 import { createElement, EventDelegator } from "../dom";
 import type { VNode } from "../types";
-import { scope, setCurrentScope, getCurrentScope } from "../reactive";
+import { scope } from "../reactive";
 
 export const rootRegistry = new Map<string, EventDelegator>();
 
@@ -19,6 +19,8 @@ export function render(
   const renderScope = scope(() => {
     createElement(vNode, root, rootSelector);
   });
+
+  renderScope.rootSelector = rootSelector;
 
   let cleaned = false;
 

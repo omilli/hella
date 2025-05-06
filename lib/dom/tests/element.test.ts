@@ -4,6 +4,7 @@ import { createElement } from "../element";
 import { rootRegistry } from "../../render";
 import { EventDelegator } from "../events";
 import type { VNode } from "../../types";
+import { Scope } from '../../reactive';
 
 describe("createElement", () => {
   let parent: HTMLElement;
@@ -89,13 +90,13 @@ describe("createElement", () => {
   });
 
   it("handles context cleanup for event handlers", () => {
-    const cleanup = mock(() => { });
-    const context = { effects: { add: (fn: () => void) => fn() } };
+    const context = { effects: { add: (fn: () => void) => fn() } } as Scope;
     const onClick = mock(() => { });
     const vNode: VNode = {
       tag: "button",
-      props: { onClick, _context: context },
-      children: []
+      props: { onClick },
+      children: [],
+      _scope: context
     };
     const node = createElement(vNode, parent, rootSelector) as HTMLElement;
     expect(node).toBeInstanceOf(HTMLElement);

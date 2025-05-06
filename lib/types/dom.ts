@@ -1,3 +1,4 @@
+import type { Scope } from "../reactive";
 import type { HTMLAttributeMap, HTMLAttributes } from "./attributes";
 
 export type HTMLTagName = keyof HTMLAttributeMap;
@@ -7,6 +8,7 @@ export interface VNode<T extends HTMLTagName = HTMLTagName> {
   props: VNodeProps<T>;
   children: VNodeValue[];
   _item?: unknown;
+  _scope?: Scope;
   cleanup?: () => void;
 }
 
