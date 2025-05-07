@@ -1,4 +1,5 @@
-import { effect, popContext, pushContext, type Context } from "./reactive";
+import { registerDelegatedEvent, setNodeHandler } from "./events";
+import { currentContext, effect, popContext, pushContext, type Context } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
 interface ContextNode extends Node {
@@ -42,14 +43,21 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
 
   // Fine-grained props reactivity
   for (const [key, value] of Object.entries(vnode.props || {})) {
-    if (typeof value === "function" && !key.startsWith("on")) {
+    if (typeof value === "function" && key.startsWith("on")) {
+      // e.g. onClick -> click
+      const event = key.slice(2).toLowerCase();
+      registerDelegatedEvent(event);
+      setNodeHandler(el, event, value as EventListener);
+
+      // Register for context cleanup
+      const ctx = currentContext();
+      if (ctx) {
+        ctx.eventDelegates.add({ node: el, type: event });
+      }
+    } else if (typeof value === "function") {
       effect(() => {
         el.setAttribute(key, value());
       });
-    } else if (key.startsWith("on") && typeof value === "function") {
-      // Add event listener (e.g., onClick -> click)
-      const event = key.slice(2).toLowerCase();
-      el.addEventListener(event, value as EventListener);
     } else {
       el.setAttribute(key, value as string);
     }
