@@ -127,61 +127,95 @@ export function show(conditions: Array<[() => boolean, (() => unknown) | VNode]>
   };
 }
 
-export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode, key?: (item: T) => any }) {
+export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode, key: (item: T) => any }) {
+  let keyToNode = new Map<any, Node>();
+  let lastKeys: any[] = [];
+  // Use the children function as the WeakMap key
   return function (parent: HTMLElement) {
-    let nodes: Node[] = [];
-    let keys: any[] = [];
-    let keyFn = props.key || ((item: any) => item.id ?? item);
-
     effect(() => {
       const items = props.each();
-      const newKeys = items.map(keyFn);
-      const newNodes: Node[] = new Array(items.length);
+      const keys = items.map(props.key);
+      const prevKeys = lastKeys;
+      const prevKeyToNode = keyToNode;
+      const nextKeys: any[] = [];
+      const nextKeyToNode = new Map<any, Node>();
 
-      // Map old keys to their node and index
-      const oldKeyToIndex = new Map<any, number>();
-      keys.forEach((k, i) => oldKeyToIndex.set(k, i));
+      // 1. Build nextKeyToNode and nextKeys, reusing nodes where possible
+      for (let i = 0; i < items.length; i++) {
+        const key = keys[i];
+        nextKeys.push(key);
+        let node = prevKeyToNode.get(key);
+        if (!node || node.parentNode !== parent) {
+          node = mount(props.children(items[i], i), parent);
+        }
+        nextKeyToNode.set(key, node);
+      }
 
-      // Track which old nodes are reused
-      const reused = new Set<number>();
+      // 2. Remove nodes that are no longer present
+      for (const key of prevKeys) {
+        if (!nextKeyToNode.has(key)) {
+          const node = prevKeyToNode.get(key);
+          if (node && node.parentNode === parent) parent.removeChild(node);
+        }
+      }
 
-      // --- Efficient DOM update ---
-      let nextSibling: ChildNode | null = null;
-      // Traverse from end to start for stable insertBefore
-      for (let i = items.length - 1; i >= 0; i--) {
-        const k = newKeys[i];
-        const oldIdx = oldKeyToIndex.get(k);
-        if (oldIdx != null) {
-          // Reuse node
-          const node = nodes[oldIdx];
-          newNodes[i] = node;
-          reused.add(oldIdx);
-          // Move in DOM only if needed
-          if (node.nextSibling !== nextSibling) {
-            parent.insertBefore(node, nextSibling);
+      // 3. Detect swap optimization
+      let swapIndices: [number, number] | null = null;
+      if (nextKeys.length === prevKeys.length) {
+        let differences = 0;
+        let firstDiff = -1;
+        let secondDiff = -1;
+        for (let i = 0; i < nextKeys.length; i++) {
+          if (nextKeys[i] !== prevKeys[i]) {
+            if (differences === 0) firstDiff = i;
+            else if (differences === 1) secondDiff = i;
+            differences++;
+            if (differences > 2) break;
           }
-          nextSibling = node as ChildNode;
+        }
+        if (
+          differences === 2 &&
+          nextKeys[firstDiff] === prevKeys[secondDiff] &&
+          nextKeys[secondDiff] === prevKeys[firstDiff]
+        ) {
+          swapIndices = [firstDiff, secondDiff];
+        }
+      }
+
+      if (swapIndices) {
+        // Only swap the two nodes
+        const [i, j] = swapIndices;
+        const node1 = nextKeyToNode.get(nextKeys[i])!;
+        const node2 = nextKeyToNode.get(nextKeys[j])!;
+        const next1 = node1.nextSibling;
+        const next2 = node2.nextSibling;
+        if (next1 === node2) {
+          parent.insertBefore(node2, node1);
+        } else if (next2 === node1) {
+          parent.insertBefore(node1, node2);
         } else {
-          // Create new node
-          const vnode = props.children(items[i], i);
-          const node = mount(vnode, parent);
-          newNodes[i] = node;
-          parent.insertBefore(node, nextSibling);
-          nextSibling = node as ChildNode;
+          parent.insertBefore(node2, node1);
+          parent.insertBefore(node1, next2);
+        }
+      } else {
+        // Efficiently reorder/insert nodes with minimal DOM ops
+        let domChild = parent.firstChild;
+        for (let i = 0; i < nextKeys.length; i++) {
+          const key = nextKeys[i];
+          const node = nextKeyToNode.get(key)!;
+          if (node === domChild) {
+            domChild = domChild!.nextSibling;
+            continue;
+          }
+          parent.insertBefore(node, domChild);
+          // domChild remains the same
         }
       }
 
-      // Remove old nodes not reused
-      for (let i = 0; i < nodes.length; i++) {
-        if (!reused.has(i)) {
-          if (nodes[i].parentNode === parent) parent.removeChild(nodes[i]);
-        }
-      }
-
-      nodes = newNodes;
-      keys = newKeys;
+      // 4. Update state
+      keyToNode = nextKeyToNode;
+      lastKeys = nextKeys;
     });
-
     return null;
   } as unknown as VNode;
 }
