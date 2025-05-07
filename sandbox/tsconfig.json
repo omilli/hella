@@ -11,7 +11,7 @@
     "verbatimModuleSyntax": true,
     "baseUrl": "./",
     "paths": {
-      "@hellajs/core*": [
+      "@hellajs/core": [
         "../lib/index.ts"
       ]
     },
@@ -23,6 +23,8 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "./**/*.ts"
+    "./**/*.ts",
+    "../lib/html.ts",
+    "../lib/mount.ts"
   ]
 }

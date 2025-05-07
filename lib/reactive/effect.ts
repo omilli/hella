@@ -1,4 +1,4 @@
-import { currentContext } from "./scope"; // Adjust path as needed
+import { currentContext } from "./context";
 
 export const effectQueue: Set<() => void> = new Set();
 

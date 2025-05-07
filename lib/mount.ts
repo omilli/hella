@@ -1,5 +1,4 @@
 import { effect, popContext, pushContext, type Context } from "./reactive";
-
 import type { VNode, VNodeValue } from "./types";
 
 interface ContextNode extends Node {
@@ -127,24 +126,95 @@ export function show(conditions: Array<[() => boolean, (() => unknown) | VNode]>
   };
 }
 
-export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode }) {
+export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode, key: (item: T) => any }) {
+  let keyToNode = new Map<any, Node>();
+  let lastKeys: any[] = [];
+  // Use the children function as the WeakMap key
   return function (parent: HTMLElement) {
-    let nodes: Node[] = [];
     effect(() => {
-      // Remove old nodes
-      for (const node of nodes) {
-        if (node.parentNode === parent) parent.removeChild(node);
-      }
-      nodes = [];
-      // Create and insert new nodes
       const items = props.each();
-      items.forEach((item, i) => {
-        const vnode = props.children(item, i);
-        const node = mount(vnode, parent);
-        nodes.push(node);
-      });
+      const keys = items.map(props.key);
+      const prevKeys = lastKeys;
+      const prevKeyToNode = keyToNode;
+      const nextKeys: any[] = [];
+      const nextKeyToNode = new Map<any, Node>();
+
+      // 1. Build nextKeyToNode and nextKeys, reusing nodes where possible
+      for (let i = 0; i < items.length; i++) {
+        const key = keys[i];
+        nextKeys.push(key);
+        let node = prevKeyToNode.get(key);
+        if (!node || node.parentNode !== parent) {
+          node = mount(props.children(items[i], i), parent);
+        }
+        nextKeyToNode.set(key, node);
+      }
+
+      // 2. Remove nodes that are no longer present
+      for (const key of prevKeys) {
+        if (!nextKeyToNode.has(key)) {
+          const node = prevKeyToNode.get(key);
+          if (node && node.parentNode === parent) parent.removeChild(node);
+        }
+      }
+
+      // 3. Detect swap optimization
+      let swapIndices: [number, number] | null = null;
+      if (nextKeys.length === prevKeys.length) {
+        let differences = 0;
+        let firstDiff = -1;
+        let secondDiff = -1;
+        for (let i = 0; i < nextKeys.length; i++) {
+          if (nextKeys[i] !== prevKeys[i]) {
+            if (differences === 0) firstDiff = i;
+            else if (differences === 1) secondDiff = i;
+            differences++;
+            if (differences > 2) break;
+          }
+        }
+        if (
+          differences === 2 &&
+          nextKeys[firstDiff] === prevKeys[secondDiff] &&
+          nextKeys[secondDiff] === prevKeys[firstDiff]
+        ) {
+          swapIndices = [firstDiff, secondDiff];
+        }
+      }
+
+      if (swapIndices) {
+        // Only swap the two nodes
+        const [i, j] = swapIndices;
+        const node1 = nextKeyToNode.get(nextKeys[i])!;
+        const node2 = nextKeyToNode.get(nextKeys[j])!;
+        const next1 = node1.nextSibling;
+        const next2 = node2.nextSibling;
+        if (next1 === node2) {
+          parent.insertBefore(node2, node1);
+        } else if (next2 === node1) {
+          parent.insertBefore(node1, node2);
+        } else {
+          parent.insertBefore(node2, node1);
+          parent.insertBefore(node1, next2);
+        }
+      } else {
+        // Efficiently reorder/insert nodes with minimal DOM ops
+        let domChild = parent.firstChild;
+        for (let i = 0; i < nextKeys.length; i++) {
+          const key = nextKeys[i];
+          const node = nextKeyToNode.get(key)!;
+          if (node === domChild) {
+            domChild = domChild!.nextSibling;
+            continue;
+          }
+          parent.insertBefore(node, domChild);
+          // domChild remains the same
+        }
+      }
+
+      // 4. Update state
+      keyToNode = nextKeyToNode;
+      lastKeys = nextKeys;
     });
-    // For compatibility, return null (nothing to append)
-    return false;
-  } as () => VNodeValue;
+    return null;
+  } as unknown as VNode;
 }

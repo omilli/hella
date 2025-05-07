@@ -1,5 +1,5 @@
 import { getCurrentEffect, queueEffects } from "./effect";
-import { currentContext } from "./scope"; // Adjust path as needed
+import { currentContext } from "./context";
 
 export interface Signal<T> {
   (): T;

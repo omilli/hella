@@ -1,5 +1,4 @@
 
-// --- Context Stack ---
 export type Context = {
   name: string;
   effects: Set<() => void>;

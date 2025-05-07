@@ -1,4 +1,4 @@
-import { html, signal, type Signal, batch, For, mount } from "./lib";
+import { html, signal, type Signal, batch, For, mount } from "@hellajs/core";
 
 const { div, table, tbody, tr, td, button, span, a, h1 } = html;
 

@@ -1,5 +1,5 @@
 import { signal, type Signal } from "./signal";
-import { scope } from "./scope";
+import { pushContext, popContext, currentContext } from "./context";
 
 // Utility to check if a value is a plain object
 const isPlainObject = (value: unknown): value is object =>
@@ -25,10 +25,8 @@ export type Store<T extends object = {}> = NestedStore<T> & {
 };
 
 export function store<T extends object = {}>(initial: T): Store<T> {
-  // Create a single scope for the root store
-  const [storeScope, resetScope] = scope();
-
-  // Initialize result with methods
+  // Create a new context for this store
+  const ctx = pushContext("store");
   const result: Store<T> = {
     $computed() {
       const computedObj = {} as T;
@@ -59,7 +57,6 @@ export function store<T extends object = {}>(initial: T): Store<T> {
         const current = this[typedKey];
         if (value !== undefined) {
           if (isPlainObject(value) && "$update" in current) {
-            // Use $update for nested stores to allow partials
             (current as unknown as Store)["$update"](value as object);
           } else {
             (current as Signal<unknown>).set(value);
@@ -68,19 +65,24 @@ export function store<T extends object = {}>(initial: T): Store<T> {
       }
     },
     $cleanup: () => {
-      storeScope.cleanup();
+      popContext(); // Cleans up all signals/effects in this store's context
     },
   } as Store<T>;
 
-  // Populate properties within the store's scope
+  // Populate properties within the store's context
   for (const [key, value] of Object.entries(initial)) {
     const typedKey = key as keyof T;
-    result[typedKey] = (isPlainObject(value)
-      ? store(value as object)
-      : signal(value)) as Store<T>[typeof typedKey];
+    if (isPlainObject(value)) {
+      result[typedKey] = store(value as object) as unknown as Store<T>[typeof typedKey];
+    } else {
+      const sig = signal(value);
+      // Register signal with current context for cleanup
+      currentContext()?.signals.add(sig as any);
+      result[typedKey] = sig as Store<T>[typeof typedKey];
+    }
   }
 
-  resetScope();
+  popContext(); // Finalize context setup
 
   return result;
 }

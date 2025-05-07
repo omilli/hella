@@ -1,5 +1,5 @@
 import { getCurrentEffect, queueEffects } from "./effect";
-import { getCurrentScope } from "./scope";
+import { currentContext } from "./context";
 import type { Signal } from "./signal";
 
 export interface ResourceState<T> {
@@ -62,9 +62,10 @@ export function resource<T>(
       subscribers.add(currentEffect);
     }
 
-    const currentScope = getCurrentScope();
-    if (currentScope) {
-      currentScope.signals.add(signalFn as Signal<unknown>);
+    // Register with current context for cleanup
+    const ctx = currentContext();
+    if (ctx) {
+      ctx.signals.add(signalFn as Signal<unknown>);
     }
 
     return state;
@@ -85,5 +86,5 @@ export function resource<T>(
     currentFetch = null;
   };
 
-  return signalFn;
+  return signalFn as Resource<T>;
 }
