@@ -1,5 +1,5 @@
 import { scope, getCurrentScope, setCurrentScope } from "../reactive";
-import type { Signal } from "../reactive";
+import type { Scope, Signal } from "../reactive";
 import type { VNode } from "../types";
 
 /**
@@ -12,10 +12,10 @@ export function list<T>(
   mapFn: (item: T, index: number) => VNode
 ) {
   return () => {
-    const listScope = scope();
+    const [listScope, resetScope] = scope();
+
     listScope.eventElements = new Set<HTMLElement>();
-    const prev = getCurrentScope();
-    setCurrentScope(listScope);
+
     try {
       const vnodes = data().map((item, index) => {
         const vNode = mapFn(item, index);
@@ -23,10 +23,12 @@ export function list<T>(
         vNode._scope = listScope;
         return vNode;
       });
-      (vnodes as VNode[] & { cleanup: () => void }).cleanup = () => listScope.cleanup();
+
+      (vnodes as VNode[] & Scope).cleanup = () => listScope.cleanup();
+
       return vnodes;
     } finally {
-      setCurrentScope(prev);
+      resetScope();
     }
   };
 }

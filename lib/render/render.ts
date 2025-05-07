@@ -16,9 +16,9 @@ export function render(
   const delegator = new EventDelegator(rootSelector);
   rootRegistry.set(rootSelector, delegator);
 
-  const renderScope = scope(() => {
-    createElement(vNode, root, rootSelector);
-  });
+  const [renderScope] = scope();
+
+  createElement(vNode, root, rootSelector);;
 
   renderScope.rootSelector = rootSelector;
 

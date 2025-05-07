@@ -26,28 +26,26 @@ export type Store<T extends object = {}> = NestedStore<T> & {
 
 export function store<T extends object = {}>(initial: T): Store<T> {
   // Create a single scope for the root store
-  const storeScope = scope();
-  const prevScope = getCurrentScope();
-  setCurrentScope(storeScope);
+  const [storeScope, resetScope] = scope();
 
   // Initialize result with methods
   const result: Store<T> = {
-    $computed: () => {
+    $computed() {
       const computedObj = {} as T;
-      for (const key in result) {
+      for (const key in this) {
         if (key.startsWith("$")) continue;
         const typedKey = key as keyof T;
-        const value = result[typedKey];
+        const value = this[typedKey];
         computedObj[typedKey] = (
           typeof value === "function" ? value() : value.$computed()
         ) as T[keyof T];
       }
       return computedObj;
     },
-    $set: (newValue: T) => {
+    $set(newValue: T) {
       for (const [key, value] of Object.entries(newValue)) {
         const typedKey = key as keyof T;
-        const current = result[typedKey];
+        const current = this[typedKey];
         if (isPlainObject(value) && "$set" in current) {
           (current as unknown as Store).$set(value);
         } else {
@@ -55,10 +53,10 @@ export function store<T extends object = {}>(initial: T): Store<T> {
         }
       }
     },
-    $update: (partial: PartialDeep<T>) => {
+    $update(partial: PartialDeep<T>) {
       for (const [key, value] of Object.entries(partial)) {
         const typedKey = key as keyof T;
-        const current = result[typedKey];
+        const current = this[typedKey];
         if (value !== undefined) {
           if (isPlainObject(value) && "$update" in current) {
             // Use $update for nested stores to allow partials
@@ -71,7 +69,6 @@ export function store<T extends object = {}>(initial: T): Store<T> {
     },
     $cleanup: () => {
       storeScope.cleanup();
-      setCurrentScope(prevScope);
     },
   } as Store<T>;
 
@@ -83,8 +80,7 @@ export function store<T extends object = {}>(initial: T): Store<T> {
       : signal(value)) as Store<T>[typeof typedKey];
   }
 
-  // Restore previous scope
-  setCurrentScope(prevScope);
+  resetScope();
 
   return result;
 }

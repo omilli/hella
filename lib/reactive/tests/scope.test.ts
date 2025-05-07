@@ -9,7 +9,7 @@ describe('scope', () => {
   });
 
   it('should create a scope and set/get current scope', () => {
-    const s = scope();
+    const [s] = scope();
     setCurrentScope(s);
     expect(getCurrentScope()).toBe(s);
     setCurrentScope(null);
@@ -17,7 +17,7 @@ describe('scope', () => {
   });
 
   it('should register and cleanup effects', () => {
-    const s = scope();
+    const [s] = scope();
     setCurrentScope(s);
     let ran = 0;
     effect(() => { ran++; });
@@ -30,7 +30,7 @@ describe('scope', () => {
   });
 
   it('should register and cleanup signals', () => {
-    const s = scope();
+    const [s] = scope();
     setCurrentScope(s);
     const sig = signal(1);
     sig();
@@ -41,8 +41,8 @@ describe('scope', () => {
   });
 
   it('should cleanup parent reference', () => {
-    const parent = scope();
-    const child = scope(undefined, parent);
+    const [parent] = scope();
+    const [child] = scope(parent);
     expect(child.parent).toBe(parent);
     child.cleanup();
     expect((child.parent as undefined)).toBe(undefined);

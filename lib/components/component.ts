@@ -6,22 +6,24 @@ export function component<Props extends object>(
   fn: (props: Props) => VNode
 ) {
   return (props?: Props) => {
-    const componentScope = scope();
+    const [componentScope, resetScope] = scope();
+
     componentScope.eventElements = new Set<HTMLElement>();
+
     const parentScope = getCurrentScope();
     if (parentScope && parentScope.rootSelector) {
       componentScope.rootSelector = parentScope.rootSelector;
     }
-    const prev = getCurrentScope();
-    setCurrentScope(componentScope);
+
     let result: VNode;
     let userCleanup: (() => void) | undefined;
+
     try {
       const out = fn(props as Props);
       result = out;
       userCleanup = out.cleanup;
     } finally {
-      setCurrentScope(prev);
+      resetScope();
     }
     if (typeof result === "object") {
       result._scope = componentScope;
