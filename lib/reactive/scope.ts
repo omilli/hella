@@ -1,38 +1,33 @@
-import type { Signal } from "./signal";
 
-export interface Scope {
+// --- Context Stack ---
+type Context = {
+  name: string;
   effects: Set<() => void>;
-  signals: Set<Signal<unknown>>;
-  cleanup: () => void;
-  parent?: Scope;
-  eventElements?: Set<HTMLElement>;
-  rootSelector?: string;
+  signals: Set<{ cleanup: () => void }>;
+  parent?: Context;
+};
+
+const contextStack: Context[] = [];
+
+export function pushContext(name: string) {
+  const ctx: Context = { name, effects: new Set(), signals: new Set(), parent: contextStack[contextStack.length - 1] };
+  contextStack.push(ctx);
+  return ctx;
 }
 
-let currentScope: Scope | null = null;
-
-export const getCurrentScope = () => currentScope;
-
-export function setCurrentScope(scope: Scope | null): void {
-  currentScope = scope;
+export function popContext() {
+  const ctx = contextStack.pop();
+  if (ctx) {
+    // Cleanup all effects
+    ctx.effects.forEach(cleanup => cleanup());
+    ctx.effects.clear();
+    // Cleanup all signals
+    ctx.signals.forEach(signal => signal.cleanup());
+    ctx.signals.clear();
+  }
+  return ctx;
 }
 
-export function scope(parent: Scope | null = getCurrentScope()): [Scope, () => void] {
-  const newScope: Scope = {
-    effects: new Set(),
-    signals: new Set(),
-    parent: parent || undefined,
-    cleanup() {
-      for (const cleanup of this.effects) cleanup();
-      this.effects.clear();
-      for (const signal of this.signals) signal.cleanup();
-      this.signals.clear();
-      this.parent = undefined;
-    },
-  };
-  const previousScope = getCurrentScope();
-
-  setCurrentScope(newScope);
-
-  return [newScope, () => setCurrentScope(previousScope)];
+export function currentContext() {
+  return contextStack[contextStack.length - 1] || null;
 }

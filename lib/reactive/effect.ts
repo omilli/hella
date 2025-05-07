@@ -1,4 +1,4 @@
-import { getCurrentScope } from "./scope";
+import { currentContext } from "./scope"; // Adjust path as needed
 
 export const effectQueue: Set<() => void> = new Set();
 
@@ -60,10 +60,10 @@ export function effect(fn: () => void): () => void {
 
   execute();
 
-  const currentScope = getCurrentScope();
-
-  if (currentScope) {
-    currentScope.effects.add(() => {
+  // Register with current Context
+  const ctx = currentContext();
+  if (ctx) {
+    ctx.effects.add(() => {
       isCancelled = true;
       execute = null;
     });

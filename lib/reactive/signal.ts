@@ -1,5 +1,5 @@
-import { effectQueue, getCurrentEffect, isFlushingEffect, setFlushingEffect, queueEffects } from "./effect";
-import { getCurrentScope } from "./scope";
+import { getCurrentEffect, queueEffects } from "./effect";
+import { currentContext } from "./scope"; // Adjust path as needed
 
 export interface Signal<T> {
   (): T;
@@ -19,9 +19,10 @@ export function signal<T>(initial: T): Signal<T> {
       subscribers.add(currentEffect);
     }
 
-    const currentScope = getCurrentScope();
-    if (currentScope) {
-      currentScope.signals.add(signalFn as Signal<unknown>);
+    // Register with current Context
+    const ctx = currentContext();
+    if (ctx) {
+      ctx.signals.add(signalFn as Signal<unknown>);
     }
 
     return value;

@@ -1,4 +1,4 @@
-export { signal, computed, batch, untracked, type Signal, effect, scope, type Scope, resource, store, type Store } from './reactive';
-export { html, list, component } from './components';
-export { render } from './render';
+export { signal, computed, batch, untracked, type Signal, effect } from './reactive';
+export { html } from './components';
 export { type VNode } from './types';
+export { mount } from './mount';
