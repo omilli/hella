@@ -1,4 +1,4 @@
-import { scope, getCurrentScope, setCurrentScope } from "../reactive";
+import { scope } from "../reactive";
 import type { Scope, Signal } from "../reactive";
 import type { VNode } from "../types";
 
