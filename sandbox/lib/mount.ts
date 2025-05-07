@@ -1,6 +1,6 @@
-import { effect, popContext, pushContext, type Context } from "./reactive";
-
-import type { VNode, VNodeValue } from "./types";
+import { popContext, pushContext, type Context } from "./scope";
+import { effect } from "./effect";
+import type { VNode, VNodeValue } from "../../lib/types";
 
 interface ContextNode extends Node {
   __ctx?: Context;

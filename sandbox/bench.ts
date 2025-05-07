@@ -1,4 +1,4 @@
-import { html, render, signal, list, type Signal, batch, scope } from "@hellajs/core";
+import { html, signal, type Signal, batch, For, mount } from "./lib";
 
 const { div, table, tbody, tr, td, button, span, a, h1 } = html;
 
@@ -15,20 +15,8 @@ interface BenchData {
   label: Signal<string>;
 }
 
-const rows = signal<BenchData[]>([]);
-const selected = signal<number | undefined>(undefined);
-
-const cleanup = () => {
-  for (let i = 0, d = rows(), len = d.length; i < len; i++) {
-    d[i].label.cleanup();
-  }
-}
-
 const buildData = (count: number) => {
-  cleanup();
-
   let d = new Array(count);
-
   for (let i = 0; i < count; i++) {
     const label = signal(
       `${adjectives[random(adjectives.length)]} ${colors[random(colors.length)]} ${nouns[random(nouns.length)]}`
@@ -37,41 +25,6 @@ const buildData = (count: number) => {
   }
   return d;
 };
-
-const update = () => {
-  batch(() => {
-    for (let i = 0, d = rows(), len = d.length; i < len; i += 10) {
-      d[i].label.set(`${d[i].label()} !!!`);
-    }
-  })
-};
-
-const swapRows = () => {
-  const list = rows().slice();
-  if (list.length > 998) {
-    let item = list[1];
-    list[1] = list[998];
-    list[998] = item;
-    rows.set(list);
-  }
-};
-
-const remove = (id: number) => {
-  rows.set(rows().filter(row => {
-    const shouldKeep = row.id !== id;
-
-    if (!shouldKeep) {
-      row.label.cleanup();
-    }
-
-    return shouldKeep;
-  }));
-}
-
-const clear = () => {
-  cleanup();
-  rows.set([]);
-}
 
 const ActionButton = (
   id: string,
@@ -84,44 +37,84 @@ const ActionButton = (
     )
   )
 
-const Bench = div({ id: 'main' },
-  div({ class: 'container' },
-    div({ class: 'jumbotron' },
-      div({ class: 'row' },
-        div({ class: 'col-md-6' }, h1('HellaJS Keyed')),
-        div({ class: 'col-md-6' },
-          div({ class: 'row' },
-            ActionButton('run', 'Create 1,000 rows', () => rows.set(buildData(1000))),
-            ActionButton('runlots', 'Create 10,000 rows', () => rows.set(buildData(10000))),
-            ActionButton('add', 'Append 1,000 rows', () => rows.set([...rows(), ...buildData(1000)])),
-            ActionButton('update', 'Update every 10th row', () => update()),
-            ActionButton('clear', 'Clear', () => clear()),
-            ActionButton('swaprows', 'Swap Rows', () => swapRows()),
-          )
+function Bench() {
+  const rows = signal<BenchData[]>([]);
+  const selected = signal<number | undefined>(undefined);
+
+  const update = () => {
+    batch(() => {
+      for (let i = 0, d = rows(), len = d.length; i < len; i += 10) {
+        d[i].label.set(`${d[i].label()} !!!`);
+      }
+    })
+  };
+
+  const swapRows = () => {
+    const list = rows().slice();
+    if (list.length > 998) {
+      let item = list[1];
+      list[1] = list[998];
+      list[998] = item;
+      rows.set(list);
+    }
+  };
+
+  const remove = (id: number) => {
+    rows.set(rows().filter(row => {
+      const shouldKeep = row.id !== id;
+
+      if (!shouldKeep) {
+        row.label.cleanup();
+      }
+
+      return shouldKeep;
+    }));
+  }
+
+  const clear = () => {
+    rows.set([]);
+  }
+
+  return div({ id: 'main' },
+    div({ class: 'container' },
+      div({ class: 'jumbotron' },
+        div({ class: 'row' },
+          div({ class: 'col-md-6' }, h1('HellaJS Keyed')),
+          div({ class: 'col-md-6' },
+            div({ class: 'row' },
+              ActionButton('run', 'Create 1,000 rows', () => rows.set(buildData(1000))),
+              ActionButton('runlots', 'Create 10,000 rows', () => rows.set(buildData(10000))),
+              ActionButton('add', 'Append 1,000 rows', () => rows.set([...rows(), ...buildData(1000)])),
+              ActionButton('update', 'Update every 10th row', () => update()),
+              ActionButton('clear', 'Clear', () => clear()),
+              ActionButton('swaprows', 'Swap Rows', () => swapRows()),
+            )
+          ),
         ),
       ),
-    ),
-    table({ class: 'table table-hover table-striped test-rows' },
-      tbody(
-        list(rows, (row) =>
-          tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
-            td({ class: 'col-md-1' }, row.id),
-            td({ class: 'col-md-4' },
-              a({ class: 'lbl', onclick: () => selected.set(row.id) },
-                row.label
-              ),
-            ),
-            td({ class: 'col-md-1' },
-              a({ class: 'remove', onclick: () => remove(row.id) },
-                span({ class: 'glyphicon glyphicon-remove', ariaHidden: 'true' })
-              ),
-            ),
-          )
-        )
+      table({ class: 'table table-hover table-striped test-rows' },
+        tbody(
+          For({
+            each: rows, children: (row) =>
+              tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
+                td({ class: 'col-md-1' }, row.id),
+                td({ class: 'col-md-4' },
+                  a({ class: 'lbl', onclick: () => selected.set(row.id) },
+                    row.label
+                  ),
+                ),
+                td({ class: 'col-md-1' },
+                  a({ class: 'remove', onclick: () => remove(row.id) },
+                    span({ class: 'glyphicon glyphicon-remove', ariaHidden: 'true' })
+                  ),
+                ),
+              )
+          })
+        ),
       ),
+      span({ class: 'preloadicon glyphicon glyphicon-remove' }, ''),
     ),
-    span({ class: 'preloadicon glyphicon glyphicon-remove' }, ''),
-  ),
-)
+  )
+}
 
-render(Bench);
+mount(Bench, document.body);
