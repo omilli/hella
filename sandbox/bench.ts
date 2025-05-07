@@ -95,7 +95,9 @@ function Bench() {
       table({ class: 'table table-hover table-striped test-rows' },
         tbody(
           For({
-            each: rows, children: (row) =>
+            each: rows,
+            key: (row) => row.id,
+            children: (row) =>
               tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
                 td({ class: 'col-md-1' }, row.id),
                 td({ class: 'col-md-4' },

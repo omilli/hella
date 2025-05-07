@@ -127,24 +127,61 @@ export function show(conditions: Array<[() => boolean, (() => unknown) | VNode]>
   };
 }
 
-export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode }) {
+export function For<T>(props: { each: () => T[]; children: (item: T, index: number) => VNode, key?: (item: T) => any }) {
   return function (parent: HTMLElement) {
     let nodes: Node[] = [];
+    let keys: any[] = [];
+    let keyFn = props.key || ((item: any) => item.id ?? item);
+
     effect(() => {
-      // Remove old nodes
-      for (const node of nodes) {
-        if (node.parentNode === parent) parent.removeChild(node);
-      }
-      nodes = [];
-      // Create and insert new nodes
       const items = props.each();
-      items.forEach((item, i) => {
-        const vnode = props.children(item, i);
-        const node = mount(vnode, parent);
-        nodes.push(node);
-      });
+      const newKeys = items.map(keyFn);
+      const newNodes: Node[] = new Array(items.length);
+
+      // Map old keys to their node and index
+      const oldKeyToIndex = new Map<any, number>();
+      keys.forEach((k, i) => oldKeyToIndex.set(k, i));
+
+      // Track which old nodes are reused
+      const reused = new Set<number>();
+
+      // --- Efficient DOM update ---
+      let nextSibling: ChildNode | null = null;
+      // Traverse from end to start for stable insertBefore
+      for (let i = items.length - 1; i >= 0; i--) {
+        const k = newKeys[i];
+        const oldIdx = oldKeyToIndex.get(k);
+        if (oldIdx != null) {
+          // Reuse node
+          const node = nodes[oldIdx];
+          newNodes[i] = node;
+          reused.add(oldIdx);
+          // Move in DOM only if needed
+          if (node.nextSibling !== nextSibling) {
+            parent.insertBefore(node, nextSibling);
+          }
+          nextSibling = node as ChildNode;
+        } else {
+          // Create new node
+          const vnode = props.children(items[i], i);
+          const node = mount(vnode, parent);
+          newNodes[i] = node;
+          parent.insertBefore(node, nextSibling);
+          nextSibling = node as ChildNode;
+        }
+      }
+
+      // Remove old nodes not reused
+      for (let i = 0; i < nodes.length; i++) {
+        if (!reused.has(i)) {
+          if (nodes[i].parentNode === parent) parent.removeChild(nodes[i]);
+        }
+      }
+
+      nodes = newNodes;
+      keys = newKeys;
     });
-    // For compatibility, return null (nothing to append)
-    return false;
-  } as () => VNodeValue;
+
+    return null;
+  } as unknown as VNode;
 }
