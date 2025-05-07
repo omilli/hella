@@ -1,11 +1,9 @@
-import { removeNodeHandler } from "../events";
 import type { Signal } from "./signal";
 
 export type Context = {
   name: string;
   effects: Set<() => void>;
   signals: Set<Signal<unknown>>;
-  eventDelegates: Set<{ node: Node, type: string }>;
   parent?: Context;
 };
 
@@ -16,7 +14,6 @@ export function pushContext(name: string) {
     name,
     effects: new Set(),
     signals: new Set(),
-    eventDelegates: new Set(),
     parent: contextStack[contextStack.length - 1]
   };
   contextStack.push(ctx);
@@ -31,10 +28,6 @@ export function popContext() {
     ctx.effects.clear();
     ctx.signals.forEach(signal => signal.cleanup());
     ctx.signals.clear();
-    for (const { node, type } of ctx.eventDelegates) {
-      removeNodeHandler(node, type);
-    }
-    ctx.eventDelegates.clear();
   }
   return ctx;
 }

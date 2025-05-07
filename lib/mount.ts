@@ -1,5 +1,5 @@
 import { registerDelegatedEvent, removeHandlers, setNodeHandler } from "./events";
-import { currentContext, effect, popContext, pushContext, type Context } from "./reactive";
+import { effect, popContext, pushContext, type Context } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
 interface ContextNode extends Node {
@@ -46,13 +46,6 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
       const event = key.slice(2).toLowerCase();
       registerDelegatedEvent(event);
       setNodeHandler(el, event, value as EventListener);
-
-      // Register for context cleanup
-      const ctx = currentContext();
-      console.log("ctx", ctx);
-      if (ctx) {
-        ctx.eventDelegates.add({ node: el, type: event });
-      }
     } else if (typeof value === "function") {
       effect(() => {
         removeHandlers();
