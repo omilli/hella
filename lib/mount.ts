@@ -1,4 +1,4 @@
-import { registerDelegatedEvent, setNodeHandler } from "./events";
+import { registerDelegatedEvent, removeHandlers, setNodeHandler } from "./events";
 import { currentContext, effect, popContext, pushContext, type Context } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
@@ -6,11 +6,9 @@ interface ContextNode extends Node {
   __ctx?: Context;
 }
 
-const FRAGMENT = Symbol.for("fragment"); // Use the same symbol as in For
-
 // --- Helper: is named function (component) ---
 function isComponent(fn: any): boolean {
-  return typeof fn === "function" && fn.name && fn.prototype;
+  return typeof fn === "function" && fn.prototype;
 }
 
 // --- Fine-grained recursive mount with context ---
@@ -51,11 +49,13 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
 
       // Register for context cleanup
       const ctx = currentContext();
+      console.log("ctx", ctx);
       if (ctx) {
         ctx.eventDelegates.add({ node: el, type: event });
       }
     } else if (typeof value === "function") {
       effect(() => {
+        removeHandlers();
         el.setAttribute(key, value());
       });
     } else {
@@ -66,7 +66,6 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
   // Recursively mount children
   (vnode.children || []).forEach(child => {
     if (Array.isArray(child)) {
-      // FIX: Recursively mount each child in the array
       child.forEach(grandchild => mount(grandchild, el));
     } else if (typeof child === "function") {
       if (child.length === 1) {
@@ -76,12 +75,14 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
           const text = document.createTextNode(child() as string);
           el.appendChild(text);
           effect(() => {
+            removeHandlers();
             text.textContent = child() as string ?? "";
           });
         } else {
           let currentNode: Node | null = null;
           let cleanupContext: (() => void) | null = null;
           effect(() => {
+            removeHandlers();
             if (cleanupContext) {
               cleanupContext();
               cleanupContext = null;
@@ -97,8 +98,8 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
             } else if (typeof result === "string" || typeof result === "number") {
               currentNode = document.createTextNode(result as string);
               el.appendChild(currentNode);
-            } else if (typeof result === "function" && result.name && result.prototype) {
-              const ctx = pushContext(result.name);
+            } else if (isComponent(result)) {
+              const ctx = pushContext((result as Function).name);
               currentNode = mount(result as () => VNode, el);
               if (currentNode && typeof currentNode === "object") {
                 (currentNode as ContextNode).__ctx = ctx;
@@ -140,6 +141,7 @@ export function For<T>(props: { each: () => T[]; children: (item: T, index: numb
   // Use the children function as the WeakMap key
   return function (parent: HTMLElement) {
     effect(() => {
+      removeHandlers();
       const items = props.each();
       const keys = items.map(props.key);
       const prevKeys = lastKeys;

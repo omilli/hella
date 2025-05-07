@@ -1,5 +1,5 @@
 type HandlerMap = Map<string, EventListener>;
-const nodeHandlers = new WeakMap<Node, HandlerMap>();
+const nodeHandlers = new Map<Node, HandlerMap>();
 const globalListeners = new Set<string>();
 
 export function registerDelegatedEvent(type: string) {
@@ -35,6 +35,21 @@ export function removeNodeHandler(node: Node, type: string) {
     map.delete(type);
     if (map.size === 0) nodeHandlers.delete(node);
   }
+}
+
+let removeHandlersQueued = false;
+
+export function removeHandlers() {
+  if (removeHandlersQueued) return;
+  removeHandlersQueued = true;
+  requestAnimationFrame(() => {
+    nodeHandlers.forEach((_, node) => {
+      if (!node.isConnected) {
+        nodeHandlers.delete(node);
+      }
+    });
+    removeHandlersQueued = false;
+  });
 }
 
 export function cleanupNodeHandlers(node: Node) {

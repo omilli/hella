@@ -1,9 +1,10 @@
 import { removeNodeHandler } from "../events";
+import type { Signal } from "./signal";
 
 export type Context = {
   name: string;
   effects: Set<() => void>;
-  signals: Set<{ cleanup: () => void }>;
+  signals: Set<Signal<unknown>>;
   eventDelegates: Set<{ node: Node, type: string }>;
   parent?: Context;
 };
@@ -19,6 +20,7 @@ export function pushContext(name: string) {
     parent: contextStack[contextStack.length - 1]
   };
   contextStack.push(ctx);
+
   return ctx;
 }
 

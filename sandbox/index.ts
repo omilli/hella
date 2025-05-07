@@ -8,7 +8,10 @@ import "./bench"
 
 // // --- COMPONENTS ---
 // function Foo() {
-//   const foo = signal("foo");
+//   const foo = signal(0);
+//   setInterval(() => {
+//     foo.set(foo() + 1);
+//   }, 1000);
 //   return div({ class: "foo" }, span({ class: "foo-text" }, foo));
 // }
 
@@ -32,13 +35,15 @@ import "./bench"
 //     button({ class: "increment", onclick: increment }, "Increment"),
 //     span({ class: "double" }, double),
 //     button({ class: "toggle", onclick: toggleFoo }, "Toggle Foo"),
+//     Foo(),
 //     show([
-//       [showFoo, Foo],
+//       [showFoo, Foo()],
 //       [hideFoo, div("Fallback")]
 //     ]),
 //     div(
 //       For({
 //         each: rows,
+//         key: (row) => row.id,
 //         children: (row, i) => div({ key: row.id }, row.label)
 //       })
 //     )

@@ -1,4 +1,4 @@
-import { html, signal, type Signal, batch, For, mount } from "@hellajs/core";
+import { html, signal, type Signal, batch, For, mount, type VNode } from "@hellajs/core";
 
 const { div, table, tbody, tr, td, button, span, a, h1 } = html;
 
@@ -118,5 +118,4 @@ function Bench() {
     ),
   )
 }
-
 mount(Bench, document.body);
