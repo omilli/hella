@@ -1,6 +1,6 @@
 
 // --- Context Stack ---
-type Context = {
+export type Context = {
   name: string;
   effects: Set<() => void>;
   signals: Set<{ cleanup: () => void }>;

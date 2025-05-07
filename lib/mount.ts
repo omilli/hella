@@ -1,5 +1,10 @@
-import { effect, popContext, pushContext } from "./reactive";
+import { effect, popContext, pushContext, type Context } from "./reactive";
+
 import type { VNode } from "./types";
+
+interface ContextNode extends Node {
+  __ctx?: Context;
+}
 
 // --- Helper: is named function (component) ---
 function isComponent(fn: any): boolean {
@@ -17,10 +22,13 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
 
   // Named function component: create new context
   if (isComponent(vnode)) {
-    pushContext((vnode as Function).name);
-    const result = mount((vnode as Function)(), parent);
-    popContext();
-    return result;
+    const ctx = pushContext((vnode as Function).name);
+    const node = mount((vnode as Function)(), parent);
+    // Attach context to the node for later cleanup
+    if (node && typeof node === "object") {
+      (node as ContextNode).__ctx = ctx;
+    }
+    return node;
   }
 
   // Arrow function or computed: just call
@@ -49,7 +57,6 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
   // Recursively mount children
   (vnode.children || []).forEach(child => {
     if (typeof child === "function") {
-      // If it's a signal/computed (has .set), treat as reactive text
       if ("set" in child) {
         const text = document.createTextNode(child() as string);
         el.appendChild(text);
@@ -57,23 +64,34 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
           text.textContent = child() as string ?? "";
         });
       } else {
-        // Dynamic/computed child (arrow function, e.g. conditional component)
         let currentNode: Node | null = null;
+        let cleanupContext: (() => void) | null = null;
         effect(() => {
-          // Remove previous node if present
+          // Cleanup previous node and its context
+          if (cleanupContext) {
+            cleanupContext();
+            cleanupContext = null;
+          }
           if (currentNode && currentNode.parentNode === el) {
             el.removeChild(currentNode);
+            currentNode = null;
           }
           const result = child();
           if (typeof result === "string" || typeof result === "number") {
             currentNode = document.createTextNode(result as string);
             el.appendChild(currentNode);
           } else if (typeof result === "function" && result.name && result.prototype) {
+            // Always push/pop context for each mount
+            const ctx = pushContext(result.name);
             currentNode = mount(result as () => VNode, el);
+            if (currentNode && typeof currentNode === "object") {
+              (currentNode as ContextNode).__ctx = ctx;
+            }
+            cleanupContext = () => {
+              popContext();
+            };
           } else if (result != null) {
             currentNode = mount(result as () => VNode, el);
-          } else {
-            currentNode = null;
           }
         });
       }
