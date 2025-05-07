@@ -20,6 +20,11 @@ function Counter() {
   const showFoo = () => hasFoo();
   const hideFoo = () => !hasFoo();
 
+  const rows = () => Array.from({ length: count() }, (_, i) => ({
+    id: i,
+    label: `Row ${i + 1}`
+  }));
+
   return () =>
     div({ class: "counter" },
       span({ class: "count" }, count),
@@ -29,7 +34,11 @@ function Counter() {
       show([
         [showFoo, Foo],
         [hideFoo, div("Fallback")]
-      ])
+      ]),
+      For({
+        each: rows,
+        children: (row, i) => div({ key: row.id }, row.label)
+      })
     );
 }
 
@@ -44,5 +53,8 @@ function show(conditions: Array<[() => boolean, (() => unknown) | VNode]>) {
   };
 }
 
+function For<T>(props: { each: () => T[]; children: (item: T, index: number) => any }) {
+  return () => props.each().map(props.children);
+}
 // --- Mount root ---
 mount(Counter(), document.body);

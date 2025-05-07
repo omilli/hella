@@ -56,7 +56,10 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
 
   // Recursively mount children
   (vnode.children || []).forEach(child => {
-    if (typeof child === "function") {
+    if (Array.isArray(child)) {
+      // FIX: Recursively mount each child in the array
+      child.forEach(grandchild => mount(grandchild, el));
+    } else if (typeof child === "function") {
       if ("set" in child) {
         const text = document.createTextNode(child() as string);
         el.appendChild(text);
@@ -67,7 +70,6 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
         let currentNode: Node | null = null;
         let cleanupContext: (() => void) | null = null;
         effect(() => {
-          // Cleanup previous node and its context
           if (cleanupContext) {
             cleanupContext();
             cleanupContext = null;
@@ -77,11 +79,13 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
             currentNode = null;
           }
           const result = child();
-          if (typeof result === "string" || typeof result === "number") {
+          // FIX: If result is an array, mount each item
+          if (Array.isArray(result)) {
+            result.forEach(grandchild => mount(grandchild, el));
+          } else if (typeof result === "string" || typeof result === "number") {
             currentNode = document.createTextNode(result as string);
             el.appendChild(currentNode);
           } else if (typeof result === "function" && result.name && result.prototype) {
-            // Always push/pop context for each mount
             const ctx = pushContext(result.name);
             currentNode = mount(result as () => VNode, el);
             if (currentNode && typeof currentNode === "object") {
