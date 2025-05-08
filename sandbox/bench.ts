@@ -38,7 +38,7 @@ const ActionButton = (
   )
 
 function Bench() {
-  const rows = signal<BenchData[]>(buildData(10)); // <-- initialize with data
+  const rows = signal<BenchData[]>([]);
   const selected = signal<number | undefined>(undefined);
 
   const update = () => {
@@ -72,8 +72,6 @@ function Bench() {
   }
 
   const clear = () => {
-    rows.set(buildData(1000));
-    console.log(rows());
     rows.set([]);
   }
 

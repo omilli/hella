@@ -20,6 +20,8 @@ export function getNodeRegistry(node: Node): NodeRegistry {
   return registry;
 }
 
+let isRunning = false;
+
 export function cleanNodeRegistry(node?: Node) {
   if (node) {
     const { effects, handlers } = getNodeRegistry(node);
@@ -31,12 +33,11 @@ export function cleanNodeRegistry(node?: Node) {
     nodeRegistry.delete(node);
   }
 
-  let isRunning = false;
+
   if (isRunning) return;
+  isRunning = true;
 
   queueMicrotask(() => {
-    isRunning = true;
-
     nodeRegistry.forEach((_, node) => {
       if (!document.body.contains(node)) {
         cleanNodeRegistry(node);

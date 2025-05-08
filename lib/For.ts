@@ -14,62 +14,82 @@ function resolve<T>(v: T[] | (() => T[])): T[] {
   return typeof v === "function" ? v() : v;
 }
 
-// For is a function that returns nothing, but mutates the parent node directly
+// Fast keyed For: only diffs and moves nodes, never clears/rebuilds whole list
 export function For<T>({ each, children, key }: ForProps<T>): any {
-  // This function will be called by the renderer with the parent node as context
   return function (parent: Node) {
     let nodes: Node[] = [];
-    let prevKeys: any[] = [];
+    let keys: any[] = [];
 
     effect(() => {
       const arr = resolve(each) || [];
       const newKeys = arr.map((item, i) => key ? key(item, i) : i);
 
-      // Remove old nodes
-      nodes.forEach(node => {
+      // Map old keys to their nodes
+      const keyToNode = new Map<any, Node>();
+      keys.forEach((k, i) => keyToNode.set(k, nodes[i]));
+
+      // Build new node list, reusing/moving nodes where possible
+      const newNodes: Node[] = [];
+      arr.forEach((item, i) => {
+        const k = newKeys[i];
+        let node: Node;
+        if (keyToNode.has(k)) {
+          node = keyToNode.get(k)!;
+          keyToNode.delete(k);
+        } else {
+          const child = children(item, i);
+          if (typeof child === "function") {
+            const placeholder = document.createComment("for-dynamic");
+            node = placeholder;
+            effect(() => {
+              const value = child();
+              let newNode: Node;
+              if (typeof value === "string" || typeof value === "number") {
+                newNode = document.createTextNode(String(value));
+              } else if (value && typeof value === "object" && "tag" in value) {
+                newNode = renderVNode(value as VNode);
+              } else if (value instanceof Node) {
+                newNode = value;
+              } else {
+                newNode = document.createComment("for-empty");
+              }
+              if (node.parentNode === parent) {
+                parent.replaceChild(newNode, node);
+              }
+              node = newNode;
+              cleanNodeRegistry();
+            });
+          } else if (typeof child === "string" || typeof child === "number") {
+            node = document.createTextNode(String(child));
+          } else if (child instanceof Node) {
+            node = child;
+          } else if (child && typeof child === "object" && "tag" in child) {
+            node = renderVNode(child as VNode);
+          } else {
+            node = document.createComment("for-empty");
+          }
+        }
+        newNodes.push(node);
+      });
+
+      // Remove old nodes not reused
+      keyToNode.forEach((node) => {
         if (node.parentNode === parent) parent.removeChild(node);
         cleanNodeRegistry(node);
       });
 
-      // Build and insert new nodes
-      nodes = arr.map((item, i) => {
-        const child = children(item, i);
-        let node: Node;
-        if (typeof child === "function") {
-          const placeholder = document.createComment("for-dynamic");
-          node = placeholder;
-          effect(() => {
-            const value = child();
-            let newNode: Node;
-            if (typeof value === "string" || typeof value === "number") {
-              newNode = document.createTextNode(String(value));
-            } else if (value && typeof value === "object" && "tag" in value) {
-              newNode = renderVNode(value as VNode);
-            } else if (value instanceof Node) {
-              newNode = value;
-            } else {
-              newNode = document.createComment("for-empty");
-            }
-            if (node.parentNode === parent) {
-              parent.replaceChild(newNode, node);
-            }
-            node = newNode;
-            cleanNodeRegistry();
-          });
-        } else if (typeof child === "string" || typeof child === "number") {
-          node = document.createTextNode(String(child));
-        } else if (child instanceof Node) {
-          node = child;
-        } else if (child && typeof child === "object" && "tag" in child) {
-          node = renderVNode(child as VNode);
-        } else {
-          node = document.createComment("for-empty");
+      // Move/insert nodes in correct order
+      let ref = null;
+      for (let i = newNodes.length - 1; i >= 0; i--) {
+        const node = newNodes[i];
+        if (node.nextSibling !== ref || node.parentNode !== parent) {
+          parent.insertBefore(node, ref);
         }
-        parent.appendChild(node);
-        return node;
-      });
+        ref = node;
+      }
 
-      prevKeys = newKeys;
+      nodes = newNodes;
+      keys = newKeys;
     });
   };
 }
