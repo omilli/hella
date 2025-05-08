@@ -1,11 +1,11 @@
 // import "./bench"
 
-import { html, signal, mount, type Signal, effect, For } from "@hellajs/core";
+import { html, signal, mount, type Signal, effect, For, Show } from "@hellajs/core";
 
 const { div, button, p, span } = html;
 
 const items = signal([signal(1), signal(2), signal(3)]);
-
+const showFoo = signal(true);
 
 function Foo({ label }: { label: string }) {
   const foo = signal(label);
@@ -30,7 +30,11 @@ function Counter() {
   }, 1000);
   return div(
     { class: count },
-    () => Foo({ label: "Foo" }),
+    Show({
+      when: showFoo,
+      children: () => Foo({ label: "Foo" })
+    }),
+    button({ onclick: () => showFoo.set(!showFoo()) }, "Toggle Foo"),
     For({
       each: items,
       children: (item) => html.span(item)
