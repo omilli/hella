@@ -1,11 +1,14 @@
 // import "./bench"
 
-import { html, signal, mount, type Signal } from "@hellajs/core";
+import { html, signal, mount, type Signal, effect } from "@hellajs/core";
 
 const { div, button, p, span } = html;
 
 function Foo() {
   const foo = signal("Foo");
+  effect(() => {
+    console.log("Foo effect: ", foo());
+  });
   return div(
     p({ onclick: () => foo.set("Bar") }, foo),
   );
@@ -18,7 +21,7 @@ function Counter() {
   }, 1000);
   return div(
     { class: count },
-    // () => count() < 10 ? Foo() : null,
+    Foo(),
     p("Count: ",
       span(
         count
@@ -27,9 +30,9 @@ function Counter() {
     button({ onclick: () => count.set(count() + 1) },
       "Increment"
     ),
-    // () => count() % 2 === 0
-    //   ? p("Even")
-    //   : div("Odd"),
+    () => count() % 2 === 0
+      ? p("Even")
+      : div("Odd"),
   )
 }
 

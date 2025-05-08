@@ -1,5 +1,5 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
-import { effect } from "./reactive";
+import { effect as rawEffect } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
 interface NodeRegistry {
@@ -51,6 +51,22 @@ function cleanNodeRegistry(node?: Node) {
   })
 }
 
+// Context for tracking the current element being rendered
+let currentElement: HTMLElement | null = null;
+export function getCurrentElement() {
+  return currentElement;
+}
+
+// Wrapped effect that registers cleanup to the current element's nodeRegistry
+export function elementEffect(fn: () => void): () => void {
+  const el = getCurrentElement();
+  const cleanup = rawEffect(fn);
+  if (el) {
+    getNodeRegistry(el).effects.add(cleanup);
+  }
+  return cleanup;
+}
+
 export function mount(vNode: VNode | (() => VNode)) {
   if (typeof vNode === "function") {
     vNode = vNode();
@@ -66,8 +82,16 @@ export function mount(vNode: VNode | (() => VNode)) {
 }
 
 function renderVNode(vNode: VNode): HTMLElement {
+  // Unwrap functions that return functions or objects
+  while (isFunction(vNode)) {
+    vNode = vNode() as VNode;
+  }
   const { tag, props, children } = vNode;
   const element = document.createElement(tag as string);
+
+  // Set context for child components/effects
+  const prevElement = currentElement;
+  currentElement = element;
 
   if (props) {
     Object.entries(props).forEach(([key, value]) => {
@@ -79,11 +103,11 @@ function renderVNode(vNode: VNode): HTMLElement {
       }
 
       if (isFunction(value)) {
-        const propCleanup = effect(() => {
+        const propCleanup = elementEffect(() => {
           renderProps(element, key, value());
           cleanNodeRegistry();
         });
-        getNodeRegistry(element).effects.add(propCleanup);
+        // Already registered in elementEffect
         return;
       }
 
@@ -93,26 +117,59 @@ function renderVNode(vNode: VNode): HTMLElement {
 
   children?.forEach((child) => handleChild(element, element, child));
 
+  currentElement = prevElement; // Restore context
+
   return element;
+}
+
+// Recursively resolve functions until a non-function value is reached
+function resolveValue(value: any): any {
+  while (isFunction(value)) {
+    value = value();
+  }
+  return value;
 }
 
 function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment, child: VNodeValue) {
   if (isFunction(child)) {
-    const result = child();
-    if (isText(result)) {
-      const textCleanup = effect(() => {
-        element.textContent = child() as string;
-        cleanNodeRegistry();
-      })
-      getNodeRegistry(root).effects.add(textCleanup);
-      renderText(element, result);
-    }
-  } else {
-    if (isText(child)) {
-      renderText(element, child);
-    } else {
-      element.appendChild(renderVNode(child as VNode));
-    }
+    const placeholder = document.createComment("dynamic");
+    element.appendChild(placeholder);
+    let currentNode: Node | null = null;
+
+    const cleanup = elementEffect(() => {
+      const value = resolveValue(child);
+      let newNode: Node;
+
+      if (isText(value)) {
+        newNode = document.createTextNode(String(value));
+      } else if (value && typeof value === "object" && "tag" in value) {
+        newNode = renderVNode(value as VNode);
+      } else {
+        newNode = document.createComment("empty");
+      }
+
+      if (currentNode) {
+        element.replaceChild(newNode, currentNode);
+      } else {
+        element.replaceChild(newNode, placeholder);
+      }
+      currentNode = newNode;
+      cleanNodeRegistry();
+    });
+
+    getNodeRegistry(root).effects.add(cleanup);
+    return;
+  }
+
+  const resolved = resolveValue(child);
+
+  if (isText(resolved)) {
+    renderText(element, resolved);
+    return;
+  }
+
+  if (resolved && typeof resolved === "object" && "tag" in resolved) {
+    element.appendChild(renderVNode(resolved as VNode));
   }
 }
 
