@@ -96,6 +96,7 @@ function Bench() {
         tbody(
           For({
             each: rows,
+            key: (row) => row.id,
             children: (row) =>
               tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
                 td({ class: 'col-md-1' }, row.id),

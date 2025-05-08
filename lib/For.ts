@@ -14,7 +14,7 @@ function resolve<T>(v: T[] | (() => T[])): T[] {
   return typeof v === "function" ? v() : v;
 }
 
-// Fast keyed For: only diffs and moves nodes, never clears/rebuilds whole list
+// Highly optimized keyed diffing For: uses LIS for minimal DOM moves (SolidJS-style)
 export function For<T>({ each, children, key }: ForProps<T>): any {
   return function (parent: Node) {
     let nodes: Node[] = [];
@@ -24,20 +24,21 @@ export function For<T>({ each, children, key }: ForProps<T>): any {
       const arr = resolve(each) || [];
       const newKeys = arr.map((item, i) => key ? key(item, i) : i);
 
-      // Map old keys to their nodes
-      const keyToNode = new Map<any, Node>();
-      keys.forEach((k, i) => keyToNode.set(k, nodes[i]));
+      // Map old keys to their node index
+      const oldKeyToIdx = new Map<any, number>();
+      for (let i = 0; i < keys.length; i++) {
+        oldKeyToIdx.set(keys[i], i);
+      }
 
       // Build new node list, reusing/moving nodes where possible
       const newNodes: Node[] = [];
-      arr.forEach((item, i) => {
+      for (let i = 0; i < arr.length; i++) {
         const k = newKeys[i];
-        let node: Node;
-        if (keyToNode.has(k)) {
-          node = keyToNode.get(k)!;
-          keyToNode.delete(k);
+        let node: Node | undefined;
+        if (oldKeyToIdx.has(k)) {
+          node = nodes[oldKeyToIdx.get(k)!];
         } else {
-          const child = children(item, i);
+          const child = children(arr[i], i);
           if (typeof child === "function") {
             const placeholder = document.createComment("for-dynamic");
             node = placeholder;
@@ -53,8 +54,8 @@ export function For<T>({ each, children, key }: ForProps<T>): any {
               } else {
                 newNode = document.createComment("for-empty");
               }
-              if (node.parentNode === parent) {
-                parent.replaceChild(newNode, node);
+              if (node!.parentNode === parent) {
+                parent.replaceChild(newNode, node!);
               }
               node = newNode;
               cleanNodeRegistry();
@@ -69,21 +70,67 @@ export function For<T>({ each, children, key }: ForProps<T>): any {
             node = document.createComment("for-empty");
           }
         }
-        newNodes.push(node);
-      });
+        newNodes.push(node!);
+      }
 
-      // Remove old nodes not reused
-      keyToNode.forEach((node) => {
-        if (node.parentNode === parent) parent.removeChild(node);
-        cleanNodeRegistry(node);
-      });
+      // Remove old nodes not reused (must check by key, not by index)
+      for (let i = 0; i < nodes.length; i++) {
+        const k = keys[i];
+        if (!newKeys.includes(k)) {
+          const node = nodes[i];
+          if (node.parentNode === parent) parent.removeChild(node);
+          cleanNodeRegistry(node);
+        }
+      }
 
-      // Move/insert nodes in correct order
+      // --- LIS-based minimal DOM moves ---
+      // Find the mapping from newNodes to oldNodes
+      const newIdxToOldIdx = newNodes.map(n => nodes.indexOf(n));
+      // Compute LIS on the mapping (ignoring -1s)
+      function lis(a: number[]) {
+        const p = a.slice();
+        const result: number[] = [];
+        let u: number, v: number;
+        for (let i = 0; i < a.length; i++) {
+          if (a[i] === -1) continue;
+          if (result.length === 0 || a[result[result.length - 1]] < a[i]) {
+            p[i] = result.length ? result[result.length - 1] : -1;
+            result.push(i);
+            continue;
+          }
+          u = 0;
+          v = result.length - 1;
+          while (u < v) {
+            const c = ((u + v) / 2) | 0;
+            if (a[result[c]] < a[i]) u = c + 1;
+            else v = c;
+          }
+          if (a[i] < a[result[u]]) {
+            if (u > 0) p[i] = result[u - 1];
+            result[u] = i;
+          }
+        }
+        u = result.length;
+        v = result[result.length - 1];
+        while (u-- > 0) {
+          result[u] = v;
+          v = p[v];
+        }
+        return result;
+      }
+      const lisIdx = lis(newIdxToOldIdx);
+
+      // Move/insert nodes in correct order, minimizing DOM ops
+      let lisPos = lisIdx.length - 1;
       let ref = null;
       for (let i = newNodes.length - 1; i >= 0; i--) {
         const node = newNodes[i];
-        if (node.nextSibling !== ref || node.parentNode !== parent) {
-          parent.insertBefore(node, ref);
+        if (newIdxToOldIdx[i] === -1 || lisIdx[lisPos] !== i) {
+          if (node.nextSibling !== ref || node.parentNode !== parent) {
+            parent.insertBefore(node, ref);
+          }
+        } else {
+          lisPos--;
         }
         ref = node;
       }
