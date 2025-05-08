@@ -1,5 +1,6 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
-import { effect as rawEffect } from "./reactive";
+import { effect } from "./reactive";
+import { pushContext, popContext } from "./reactive/context";
 import type { VNode, VNodeValue } from "./types";
 
 interface NodeRegistry {
@@ -51,22 +52,6 @@ function cleanNodeRegistry(node?: Node) {
   })
 }
 
-// Context for tracking the current element being rendered
-let currentElement: HTMLElement | null = null;
-export function getCurrentElement() {
-  return currentElement;
-}
-
-// Wrapped effect that registers cleanup to the current element's nodeRegistry
-export function elementEffect(fn: () => void): () => void {
-  const el = getCurrentElement();
-  const cleanup = rawEffect(fn);
-  if (el) {
-    getNodeRegistry(el).effects.add(cleanup);
-  }
-  return cleanup;
-}
-
 export function mount(vNode: VNode | (() => VNode)) {
   if (typeof vNode === "function") {
     vNode = vNode();
@@ -89,9 +74,14 @@ function renderVNode(vNode: VNode): HTMLElement {
   const { tag, props, children } = vNode;
   const element = document.createElement(tag as string);
 
-  // Set context for child components/effects
-  const prevElement = currentElement;
-  currentElement = element;
+  // Set up context for this element
+  const registry = getNodeRegistry(element);
+  pushContext({
+    registerEffect: (cleanup: () => void) => {
+      registry.effects.add(cleanup);
+    }
+  });
+
 
   if (props) {
     Object.entries(props).forEach(([key, value]) => {
@@ -103,11 +93,11 @@ function renderVNode(vNode: VNode): HTMLElement {
       }
 
       if (isFunction(value)) {
-        const propCleanup = elementEffect(() => {
+        const propCleanup = effect(() => {
           renderProps(element, key, value());
           cleanNodeRegistry();
         });
-        // Already registered in elementEffect
+        getNodeRegistry(element).effects.add(propCleanup);
         return;
       }
 
@@ -117,7 +107,7 @@ function renderVNode(vNode: VNode): HTMLElement {
 
   children?.forEach((child) => handleChild(element, element, child));
 
-  currentElement = prevElement; // Restore context
+  popContext();
 
   return element;
 }
@@ -136,7 +126,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
     element.appendChild(placeholder);
     let currentNode: Node | null = null;
 
-    const cleanup = elementEffect(() => {
+    const cleanup = effect(() => {
       const value = resolveValue(child);
       let newNode: Node;
 
@@ -149,6 +139,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
       }
 
       if (currentNode) {
+        cleanNodeRegistry(currentNode);
         element.replaceChild(newNode, currentNode);
       } else {
         element.replaceChild(newNode, placeholder);
