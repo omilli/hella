@@ -1,5 +1,5 @@
 import { signal, type Signal } from "./signal";
-import { pushContext, popContext, currentContext } from "./context";
+import { pushContext, popContext } from "./context";
 
 // Utility to check if a value is a plain object
 const isPlainObject = (value: unknown): value is object =>
@@ -76,8 +76,6 @@ export function store<T extends object = {}>(initial: T): Store<T> {
       result[typedKey] = store(value as object) as unknown as Store<T>[typeof typedKey];
     } else {
       const sig = signal(value);
-      // Register signal with current context for cleanup
-      currentContext()?.signals.add(sig as any);
       result[typedKey] = sig as Store<T>[typeof typedKey];
     }
   }

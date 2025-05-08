@@ -1,6 +1,4 @@
 import { getCurrentEffect, queueEffects } from "./effect";
-import { currentContext } from "./context";
-import type { Signal } from "./signal";
 
 export interface ResourceState<T> {
   value: T | null;
@@ -60,12 +58,6 @@ export function resource<T>(
     if (currentEffect) {
       if (!subscribers) subscribers = new Set();
       subscribers.add(currentEffect);
-    }
-
-    // Register with current context for cleanup
-    const ctx = currentContext();
-    if (ctx) {
-      ctx.signals.add(signalFn as Signal<unknown>);
     }
 
     return state;
