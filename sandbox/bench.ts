@@ -37,6 +37,12 @@ const ActionButton = (
     )
   )
 
+function Foo() {
+  return div({ id: 'main' },
+    "Foobar"
+  )
+}
+
 function Bench() {
   const rows = signal<BenchData[]>([]);
   const selected = signal<number | undefined>(undefined);
@@ -92,6 +98,7 @@ function Bench() {
           ),
         ),
       ),
+      Foo,
       table({ class: 'table table-hover table-striped test-rows' },
         tbody(
           For({

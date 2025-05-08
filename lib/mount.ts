@@ -1,5 +1,5 @@
 import { registerDelegatedEvent, removeHandlers, setNodeHandler } from "./events";
-import { effect, popContext, pushContext, type Context } from "./reactive";
+import { currentContext, effect, popContext, pushContext, type Context } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
 interface ContextNode extends Node {
@@ -12,7 +12,7 @@ function isComponent(fn: any): boolean {
 }
 
 // --- Fine-grained recursive mount with context ---
-export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node {
+export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement, isRoot = true): Node {
   // Text node
   if (typeof vnode === "string" || typeof vnode === "number") {
     const text = document.createTextNode(String(vnode));
@@ -22,18 +22,29 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
 
   // Named function component: create new context
   if (isComponent(vnode)) {
-    const ctx = pushContext((vnode as Function).name);
-    const node = mount((vnode as Function)(), parent);
-    // Attach context to the node for later cleanup
-    if (node && typeof node === "object") {
-      (node as ContextNode).__ctx = ctx;
+    let ctx: Context | undefined;
+    let node: Node;
+    if (isRoot && !currentContext()) {
+      ctx = pushContext((vnode as Function).name);
+      node = mount((vnode as Function)(), parent, false);
+      if (node && typeof node === "object") {
+        (node as ContextNode).__ctx = ctx;
+      }
+      // Do NOT pop context for root
+    } else {
+      ctx = pushContext((vnode as Function).name);
+      node = mount((vnode as Function)(), parent, false);
+      if (node && typeof node === "object") {
+        (node as ContextNode).__ctx = ctx;
+      }
+      popContext(); // Clean up for nested components
     }
     return node;
   }
 
   // Arrow function or computed: just call
   if (typeof vnode === "function") {
-    return mount(vnode(), parent);
+    return mount(vnode(), parent, false);
   }
 
   // DOM element
@@ -59,7 +70,7 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
   // Recursively mount children
   (vnode.children || []).forEach(child => {
     if (Array.isArray(child)) {
-      child.forEach(grandchild => mount(grandchild, el));
+      child.forEach(grandchild => mount(grandchild, el, false));
     } else if (typeof child === "function") {
       if (child.length === 1) {
         (child as (parent: HTMLElement) => VNodeValue)(el);
@@ -87,21 +98,14 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
             const result = child();
             // FIX: If result is an array, mount each item
             if (Array.isArray(result)) {
-              result.forEach(grandchild => mount(grandchild, el));
+              result.forEach(grandchild => mount(grandchild, el, false));
             } else if (typeof result === "string" || typeof result === "number") {
               currentNode = document.createTextNode(result as string);
               el.appendChild(currentNode);
-            } else if (isComponent(result)) {
-              const ctx = pushContext((result as Function).name);
-              currentNode = mount(result as () => VNode, el);
-              if (currentNode && typeof currentNode === "object") {
-                (currentNode as ContextNode).__ctx = ctx;
-              }
-              cleanupContext = () => {
-                popContext();
-              };
+            } else if (isComponent(child)) {
+              mount(child as () => VNode, el, false);
             } else if (result != null) {
-              currentNode = mount(result as () => VNode, el);
+              currentNode = mount(result as () => VNode, el, false);
             }
           });
         }
@@ -109,7 +113,7 @@ export function mount(vnode: (() => VNode) | VNode, parent?: HTMLElement): Node 
     } else if (typeof child === "string" || typeof child === "number") {
       el.appendChild(document.createTextNode(String(child)));
     } else if (child != null) {
-      mount(child as VNode, el);
+      mount(child as VNode, el, false);
     }
   });
 
@@ -132,8 +136,10 @@ export function For<T>(props: { each: () => T[]; children: (item: T, index: numb
   let keyToNode = new Map<any, Node>();
   let lastKeys: any[] = [];
   // Use the children function as the WeakMap key
+
   return function (parent: HTMLElement) {
     effect(() => {
+      console.log(currentContext())
       removeHandlers();
       const items = props.each();
       const keys = items.map(props.key);
@@ -148,7 +154,7 @@ export function For<T>(props: { each: () => T[]; children: (item: T, index: numb
         nextKeys.push(key);
         let node = prevKeyToNode.get(key);
         if (!node || node.parentNode !== parent) {
-          node = mount(props.children(items[i], i), parent);
+          node = mount(props.children(items[i], i), parent, false);
         }
         nextKeyToNode.set(key, node);
       }

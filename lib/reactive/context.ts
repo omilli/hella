@@ -17,7 +17,7 @@ export function pushContext(name: string) {
     parent: contextStack[contextStack.length - 1]
   };
   contextStack.push(ctx);
-
+  console.log("pushContext:", name, "stack:", contextStack.map(c => c.name));
   return ctx;
 }
 
@@ -29,6 +29,7 @@ export function popContext() {
     ctx.signals.forEach(signal => signal.cleanup());
     ctx.signals.clear();
   }
+  console.log("popContext:", ctx?.name, "stack:", contextStack.map(c => c.name));
   return ctx;
 }
 
