@@ -4,7 +4,7 @@ import { html, signal, mount, type Signal, effect, For, Show } from "@hellajs/co
 
 const { div, button, p, span } = html;
 
-const items = signal([signal(1), signal(2), signal(3)]);
+const items = signal<number[]>([]);
 const showFoo = signal(true);
 
 function Foo({ label }: { label: string }) {
@@ -24,9 +24,11 @@ function Counter() {
   const count = signal(0);
   effect(() => {
     console.log("Counter effect: ", count());
+    console.log("Items effect: ", items());
   });
   setInterval(() => {
     count.set(count() + 1);
+    items.set([...items(), count()]);
   }, 1000);
   return div(
     { class: count },
@@ -35,10 +37,12 @@ function Counter() {
       children: () => Foo({ label: "Foo" })
     }),
     button({ onclick: () => showFoo.set(!showFoo()) }, "Toggle Foo"),
-    For({
-      each: items,
-      children: (item) => html.span(item)
-    }),
+    div(
+      For({
+        each: items,
+        children: (item) => html.span(item)
+      })
+    ),
     p("Count: ",
       span(
         count

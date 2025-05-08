@@ -37,14 +37,8 @@ const ActionButton = (
     )
   )
 
-function Foo() {
-  return div({ id: 'main' },
-    "Foobar"
-  )
-}
-
 function Bench() {
-  const rows = signal<BenchData[]>([]);
+  const rows = signal<BenchData[]>(buildData(10)); // <-- initialize with data
   const selected = signal<number | undefined>(undefined);
 
   const update = () => {
@@ -78,6 +72,8 @@ function Bench() {
   }
 
   const clear = () => {
+    rows.set(buildData(1000));
+    console.log(rows());
     rows.set([]);
   }
 
@@ -98,12 +94,10 @@ function Bench() {
           ),
         ),
       ),
-      Foo,
       table({ class: 'table table-hover table-striped test-rows' },
         tbody(
           For({
             each: rows,
-            key: (row) => row.id,
             children: (row) =>
               tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
                 td({ class: 'col-md-1' }, row.id),
@@ -125,4 +119,5 @@ function Bench() {
     ),
   )
 }
+
 mount(Bench);

@@ -68,6 +68,11 @@ function resolveValue(value: any): any {
 }
 
 function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment, child: VNodeValue) {
+  if (typeof child === "function" && child.length === 1) {
+    child(element);
+    return;
+  }
+
   if (isFunction(child)) {
     const placeholder = document.createComment("dynamic");
     element.appendChild(placeholder);
@@ -85,10 +90,11 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
         newNode = document.createComment("empty");
       }
 
-      if (currentNode) {
+      // Fix: Only replace if the node is still a child of element
+      if (currentNode && currentNode.parentNode === element) {
         cleanNodeRegistry(currentNode);
         element.replaceChild(newNode, currentNode);
-      } else {
+      } else if (placeholder.parentNode === element) {
         element.replaceChild(newNode, placeholder);
       }
       currentNode = newNode;
@@ -119,7 +125,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
 function renderProps(element: HTMLElement, key: string, value: unknown) {
   if (key in element) {
     // @ts-ignore
-    element[key] = value();
+    element[key] = value;
   } else {
     element.setAttribute(key, value as string);
   }
