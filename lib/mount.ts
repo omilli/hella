@@ -1,56 +1,7 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
-import { effect } from "./reactive";
-import { pushContext, popContext } from "./reactive/context";
+import { effect, pushContext, popContext } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
-
-interface NodeRegistry {
-  effects: Set<() => void>;
-  handlers: Map<string, EventListener>;
-}
-
-const nodeRegistry = new Map<Node, NodeRegistry>();
-
-export function getNodeRegistry(node: Node): NodeRegistry {
-  let registry = nodeRegistry.get(node);
-
-  if (!registry) {
-    nodeRegistry.set(node, {
-      effects: new Set(),
-      handlers: new Map(),
-    });
-
-    return getNodeRegistry(node);
-  }
-
-  return registry;
-}
-
-function cleanNodeRegistry(node?: Node) {
-  if (node) {
-    const { effects, handlers } = getNodeRegistry(node);
-    if (effects) {
-      effects.forEach(fn => fn());
-      effects.clear();
-      handlers.clear();
-    }
-    nodeRegistry.delete(node);
-  }
-
-  let isRunning = false;
-  if (isRunning) return;
-
-  queueMicrotask(() => {
-    isRunning = true;
-
-    nodeRegistry.forEach((_, node) => {
-      if (!document.body.contains(node)) {
-        cleanNodeRegistry(node);
-      }
-    });
-
-    isRunning = false;
-  })
-}
+import { getNodeRegistry, cleanNodeRegistry } from "./registry";
 
 export function mount(vNode: VNode | (() => VNode)) {
   if (typeof vNode === "function") {

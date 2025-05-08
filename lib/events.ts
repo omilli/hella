@@ -1,4 +1,4 @@
-import { getNodeRegistry } from "./mount";
+import { getNodeRegistry } from "./registry";
 
 const globalListeners = new Set<string>();
 
