@@ -24,9 +24,9 @@ function Counter() {
         count
       )
     ),
-    // button({ onclick: () => count.set(count() + 1) },
-    //   "Increment"
-    // ),
+    button({ onclick: () => count.set(count() + 1) },
+      "Increment"
+    ),
     // () => count() % 2 === 0
     //   ? p("Even")
     //   : div("Odd"),

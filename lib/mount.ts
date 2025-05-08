@@ -1,40 +1,55 @@
+import { registerDelegatedEvent, setNodeHandler } from "./events";
 import { effect } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 
-const nodeRegistry = new Map<HTMLElement, Set<() => void>>();
+interface NodeRegistry {
+  effects: Set<() => void>;
+  handlers: Map<string, EventListener>;
+}
 
-function getNodeRegistry(node: HTMLElement) {
+const nodeRegistry = new Map<Node, NodeRegistry>();
+
+export function getNodeRegistry(node: Node): NodeRegistry {
   let registry = nodeRegistry.get(node);
+
   if (!registry) {
-    registry = new Set();
-    nodeRegistry.set(node, registry);
+    nodeRegistry.set(node, {
+      effects: new Set(),
+      handlers: new Map(),
+    });
+
+    return getNodeRegistry(node);
   }
+
   return registry;
 }
 
-function cleanNodeRegistry(node?: HTMLElement) {
+function cleanNodeRegistry(node?: Node) {
   if (node) {
-    const registry = nodeRegistry.get(node);
-    if (registry) {
-      registry.forEach(fn => fn());
-      registry.clear();
+    const { effects } = getNodeRegistry(node);
+    if (effects) {
+      effects.forEach(fn => fn());
+      effects.clear();
     }
     nodeRegistry.delete(node);
   }
+
   let isRunning = false;
   if (isRunning) return;
-  isRunning = true;
+
   queueMicrotask(() => {
+    isRunning = true;
+
     nodeRegistry.forEach((registry, node) => {
       if (!document.body.contains(node)) {
-        registry.forEach(fn => fn());
-        registry.clear();
+        const { effects } = registry;
+        effects.forEach(fn => fn());
+        effects.clear();
         nodeRegistry.delete(node);
       }
     });
-    isRunning = false;
 
-    console.log(nodeRegistry)
+    isRunning = false;
   })
 }
 
@@ -58,15 +73,23 @@ function renderVNode(vNode: VNode): HTMLElement {
 
   if (props) {
     Object.entries(props).forEach(([key, value]) => {
+      if (key.startsWith("on")) {
+        const event = key.slice(2).toLowerCase();
+        registerDelegatedEvent(event);
+        setNodeHandler(element, event, value as EventListener);
+        return;
+      }
+
       if (isFunction(value)) {
         const propCleanup = effect(() => {
           renderProps(element, key, value());
           cleanNodeRegistry();
         });
-        getNodeRegistry(element).add(propCleanup);
-      } else {
-        renderProps(element, key, value);
+        getNodeRegistry(element).effects.add(propCleanup);
+        return;
       }
+
+      renderProps(element, key, value);
     });
   }
 
@@ -83,7 +106,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
         element.textContent = child() as string;
         cleanNodeRegistry();
       })
-      getNodeRegistry(root).add(textCleanup);
+      getNodeRegistry(root).effects.add(textCleanup);
       renderText(element, result);
     }
   } else {
