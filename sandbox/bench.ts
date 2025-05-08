@@ -125,4 +125,4 @@ function Bench() {
     ),
   )
 }
-mount(Bench, document.body);
+mount(Bench);

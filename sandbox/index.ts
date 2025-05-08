@@ -1,8 +1,10 @@
 // import "./bench"
 
-import { html, signal, mount, type Signal, effect } from "@hellajs/core";
+import { html, signal, mount, type Signal, effect, For } from "@hellajs/core";
 
 const { div, button, p, span } = html;
+
+const items = signal([signal(1), signal(2), signal(3)]);
 
 
 function Foo({ label }: { label: string }) {
@@ -14,7 +16,7 @@ function Foo({ label }: { label: string }) {
     foo.set("Foo" + Math.random());
   }, 1000)
   return div(
-    p({ onclick: () => foo.set("Bar") }, foo),
+    p({ onclick: () => items.set([]) }, foo),
   );
 }
 
@@ -29,6 +31,10 @@ function Counter() {
   return div(
     { class: count },
     () => Foo({ label: "Foo" }),
+    For({
+      each: items,
+      children: (item) => html.span(item)
+    }),
     p("Count: ",
       span(
         count
@@ -42,5 +48,10 @@ function Counter() {
       : div("Odd"),
   )
 }
+
+// setTimeout(() => {
+//   root?.replaceChildren("");
+// }, 5000)
+
 
 mount(Counter);

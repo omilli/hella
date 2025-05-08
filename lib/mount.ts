@@ -10,14 +10,10 @@ export function mount(vNode: VNode | (() => VNode)) {
 
   const root = document.querySelector("#app");
   const element = renderVNode(vNode as VNode);
-  root?.appendChild(element);
-
-  setTimeout(() => {
-    root?.replaceChildren("");
-  }, 5000)
+  root?.replaceChildren(element); // <-- use replaceChildren
 }
 
-function renderVNode(vNode: VNode): HTMLElement {
+export function renderVNode(vNode: VNode): HTMLElement {
   // Unwrap functions that return functions or objects
   while (isFunction(vNode)) {
     vNode = vNode() as VNode;
@@ -107,6 +103,11 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
 
   if (isText(resolved)) {
     renderText(element, resolved);
+    return;
+  }
+
+  if (resolved instanceof Node) {
+    element.appendChild(resolved);
     return;
   }
 
