@@ -10,18 +10,16 @@ export function mount(vNode: VNode | (() => VNode)) {
 
   const root = document.querySelector("#app");
   const element = renderVNode(vNode as VNode);
-  root?.replaceChildren(element); // <-- use replaceChildren
+  root?.replaceChildren(element);
 }
 
 export function renderVNode(vNode: VNode): HTMLElement {
-  // Unwrap functions that return functions or objects
   while (isFunction(vNode)) {
     vNode = vNode() as VNode;
   }
   const { tag, props, children } = vNode;
   const element = document.createElement(tag as string);
 
-  // Set up context for this element
   const registry = getNodeRegistry(element);
   pushContext({
     registerEffect: (cleanup: () => void) => {
@@ -59,7 +57,6 @@ export function renderVNode(vNode: VNode): HTMLElement {
   return element;
 }
 
-// Recursively resolve functions until a non-function value is reached
 function resolveValue(value: any): any {
   while (isFunction(value)) {
     value = value();
@@ -68,7 +65,7 @@ function resolveValue(value: any): any {
 }
 
 function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment, child: VNodeValue) {
-  if (typeof child === "function" && child.length === 1) {
+  if (isFunction(child) && child.length === 1) {
     child(element);
     return;
   }
@@ -84,13 +81,12 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
 
       if (isText(value)) {
         newNode = document.createTextNode(String(value));
-      } else if (value && typeof value === "object" && "tag" in value) {
-        newNode = renderVNode(value as VNode);
+      } else if (isVNode(value)) {
+        newNode = renderVNode(value);
       } else {
         newNode = document.createComment("empty");
       }
 
-      // Fix: Only replace if the node is still a child of element
       if (currentNode && currentNode.parentNode === element) {
         cleanNodeRegistry(currentNode);
         element.replaceChild(newNode, currentNode);
@@ -117,8 +113,8 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
     return;
   }
 
-  if (resolved && typeof resolved === "object" && "tag" in resolved) {
-    element.appendChild(renderVNode(resolved as VNode));
+  if (isVNode(resolved)) {
+    element.appendChild(renderVNode(resolved));
   }
 }
 
@@ -131,15 +127,19 @@ function renderProps(element: HTMLElement, key: string, value: unknown) {
   }
 }
 
-function isText(vNode: unknown): vNode is string | number {
-  return typeof vNode === "string" || typeof vNode === "number";
-}
-
-function isFunction(vNode: unknown): vNode is () => unknown {
-  return typeof vNode === "function";
-}
-
 function renderText(element: HTMLElement | DocumentFragment, text: VNodeValue) {
   const textNode = document.createTextNode(text as string);
   element.appendChild(textNode);
+}
+
+export function isText(vNode: unknown): vNode is string | number {
+  return typeof vNode === "string" || typeof vNode === "number";
+}
+
+export function isFunction(vNode: unknown): vNode is (...args: any[]) => unknown {
+  return typeof vNode === "function";
+}
+
+export function isVNode(vNode: unknown): vNode is VNode {
+  return (vNode && typeof vNode === "object" && "tag" in vNode) as boolean;
 }
