@@ -1,10 +1,10 @@
 import { getCurrentEffect, queueEffects } from "./effect";
-import { currentContext } from "./context";
 
 export interface Signal<T> {
   (): T;
   set: (value: T) => void;
   cleanup: () => void;
+  unsubscribe: (fn: () => void) => void
 }
 
 export function signal<T>(initial: T): Signal<T> {
@@ -17,12 +17,10 @@ export function signal<T>(initial: T): Signal<T> {
     if (currentEffect) {
       if (!subscribers) subscribers = new Set();
       subscribers.add(currentEffect);
-    }
-
-    // Register with current Context
-    const ctx = currentContext();
-    if (ctx) {
-      ctx.signals.add(signalFn as Signal<unknown>);
+      // Track this signal in the effect's subscriptions
+      if ((currentEffect as any).subscriptions) {
+        (currentEffect as any).subscriptions.add(signalFn);
+      }
     }
 
     return value;
@@ -41,6 +39,11 @@ export function signal<T>(initial: T): Signal<T> {
   signalFn.cleanup = () => {
     subscribers?.clear();
     subscribers = null;
+  };
+
+  // Add unsubscribe method
+  signalFn.unsubscribe = (fn: () => void) => {
+    subscribers?.delete(fn);
   };
 
   return signalFn;

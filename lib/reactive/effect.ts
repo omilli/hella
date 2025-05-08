@@ -1,4 +1,4 @@
-import { currentContext } from "./context";
+import type { Signal } from "./signal";
 
 export const effectQueue: Set<() => void> = new Set();
 
@@ -46,31 +46,35 @@ export function flushEffects(): Promise<void> {
   });
 }
 
+
 export function effect(fn: () => void): () => void {
   let isCancelled = false;
-  let execute: (() => void) | null = () => {
+  let subscriptions = new Set<Signal<unknown>>();
+
+  // Patch getCurrentEffect to expose subscriptions
+  const execute: (() => void) & { subscriptions?: Set<Signal<unknown>> } = () => {
     if (isCancelled) return;
+    // Clear previous subscriptions
+    subscriptions.forEach(signal => signal.unsubscribe(execute));
+    subscriptions.clear();
+
+    // Set up for new subscriptions
+    (execute as any).subscriptions = subscriptions;
     setCurrentEffect(execute);
     try {
       fn();
     } finally {
       setCurrentEffect(null);
+      (execute as any).subscriptions = undefined;
     }
   };
 
   execute();
 
-  // Register with current Context
-  const ctx = currentContext();
-  if (ctx) {
-    ctx.effects.add(() => {
-      isCancelled = true;
-      execute = null;
-    });
-  }
-
   return () => {
     isCancelled = true;
-    execute = null;
+    // Unsubscribe from all signals
+    subscriptions.forEach(signal => signal.unsubscribe(execute));
+    subscriptions.clear();
   };
 }

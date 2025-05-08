@@ -1,38 +1,47 @@
 import type { Signal } from "./signal";
 
-export type Context = {
+export type Owner = {
   name: string;
-  effects: Set<() => void>;
+  owned: Set<Owner>;
+  cleanups: Set<() => void>;
   signals: Set<Signal<unknown>>;
-  parent?: Context;
+  parent?: Owner;
 };
 
-const contextStack: Context[] = [];
+let ownerStack: Owner[] = [];
 
-export function pushContext(name: string) {
-  const ctx: Context = {
+export function pushOwner(name: string) {
+  const parent = ownerStack[ownerStack.length - 1];
+  const owner: Owner = {
     name,
-    effects: new Set(),
+    owned: new Set(),
+    cleanups: new Set(),
     signals: new Set(),
-    parent: contextStack[contextStack.length - 1]
+    parent
   };
-  contextStack.push(ctx);
-  console.log("pushContext:", name, "stack:", contextStack.map(c => c.name));
-  return ctx;
+  if (parent) parent.owned.add(owner);
+  ownerStack.push(owner);
+  return owner;
 }
 
-export function popContext() {
-  const ctx = contextStack.pop();
-  if (ctx) {
-    ctx.effects.forEach(cleanup => cleanup());
-    ctx.effects.clear();
-    ctx.signals.forEach(signal => signal.cleanup());
-    ctx.signals.clear();
+export function popOwner() {
+  const owner = ownerStack.pop();
+  if (owner) {
+    // Clean up owned children first
+    owner.owned.forEach(child => {
+      owner.owned.delete(child);
+      ownerStack.push(child);
+      popOwner();
+    });
+    owner.cleanups.forEach(fn => fn());
+    owner.cleanups.clear();
+    owner.signals.forEach(signal => signal.cleanup());
+    owner.signals.clear();
   }
-  console.log("popContext:", ctx?.name, "stack:", contextStack.map(c => c.name));
-  return ctx;
+  // console.log("popOwner:", owner?.name, "stack:", ownerStack.map(o => o.name));
+  return owner;
 }
 
-export function currentContext() {
-  return contextStack[contextStack.length - 1] || null;
+export function currentOwner() {
+  return ownerStack[ownerStack.length - 1] || null;
 }
