@@ -38,7 +38,6 @@ export function popOwner() {
     owner.signals.forEach(signal => signal.cleanup());
     owner.signals.clear();
   }
-  // console.log("popOwner:", owner?.name, "stack:", ownerStack.map(o => o.name));
   return owner;
 }
 

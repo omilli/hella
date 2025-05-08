@@ -26,10 +26,11 @@ export function getNodeRegistry(node: Node): NodeRegistry {
 
 function cleanNodeRegistry(node?: Node) {
   if (node) {
-    const { effects } = getNodeRegistry(node);
+    const { effects, handlers } = getNodeRegistry(node);
     if (effects) {
       effects.forEach(fn => fn());
       effects.clear();
+      handlers.clear();
     }
     nodeRegistry.delete(node);
   }
@@ -40,12 +41,9 @@ function cleanNodeRegistry(node?: Node) {
   queueMicrotask(() => {
     isRunning = true;
 
-    nodeRegistry.forEach((registry, node) => {
+    nodeRegistry.forEach((_, node) => {
       if (!document.body.contains(node)) {
-        const { effects } = registry;
-        effects.forEach(fn => fn());
-        effects.clear();
-        nodeRegistry.delete(node);
+        cleanNodeRegistry(node);
       }
     });
 
