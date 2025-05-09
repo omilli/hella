@@ -1,11 +1,18 @@
 import type { Signal } from "./signal";
 import { getCurrentContext } from "./context";
 
-export const effectQueue: Set<() => void> = new Set();
+export interface EffectContext {
+  registerEffect: (fn: () => void) => void;
+  cleanup?: () => void;
+}
 
-let currentEffect: (() => void) | null = null;
+export type CurrentEffect = (() => void) & { subscriptions?: Set<Signal<unknown>> };
+
+let currentEffect: CurrentEffect | null = null;
 
 let isFlushing = false;
+
+export const effectQueue: Set<() => void> = new Set();
 
 export const getCurrentEffect = () => currentEffect;
 
@@ -51,23 +58,22 @@ export function effect(fn: () => void): () => void {
   let isCancelled = false;
   let subscriptions = new Set<Signal<unknown>>();
 
-  const execute: (() => void) & { subscriptions?: Set<Signal<unknown>> } = () => {
+  const execute: CurrentEffect = () => {
     if (isCancelled) return;
     subscriptions.forEach(signal => signal.unsubscribe(execute));
     subscriptions.clear();
 
-    (execute as any).subscriptions = subscriptions;
+    execute.subscriptions = subscriptions;
     setCurrentEffect(execute);
     try {
       fn();
     } finally {
       setCurrentEffect(null);
-      (execute as any).subscriptions = undefined;
+      execute.subscriptions = undefined;
     }
   };
 
-  // Register with current context if possible
-  const ctx = getCurrentContext();
+  const ctx = getCurrentContext() as EffectContext;
   if (ctx && typeof ctx.registerEffect === "function") {
     ctx.registerEffect(() => cleanup());
   }

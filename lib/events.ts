@@ -19,7 +19,6 @@ function delegatedHandler(event: Event) {
     let { handlers } = getNodeRegistry(node);
     if (handlers && handlers.has(event.type)) {
       handlers.get(event.type)!.call(node, event);
-      if ((event as any).cancelBubble) break;
     }
     node = node.parentNode;
   }

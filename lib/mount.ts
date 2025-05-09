@@ -1,5 +1,5 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
-import { effect, pushContext, popContext } from "./reactive";
+import { effect, pushContext, popContext, type EffectContext } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 import { getNodeRegistry, cleanNodeRegistry } from "./registry";
 
@@ -33,7 +33,7 @@ function renderVNode(vNode: VNode): HTMLElement {
   const element = document.createElement(tag as string);
 
   const registry = getNodeRegistry(element);
-  pushContext({
+  pushContext<EffectContext>({
     registerEffect: (cleanup: () => void) => {
       registry.effects.add(cleanup);
     }
@@ -69,7 +69,7 @@ function renderVNode(vNode: VNode): HTMLElement {
   return element;
 }
 
-function resolveValue(value: any): any {
+function resolveValue(value: unknown): unknown {
   while (isFunction(value)) {
     value = value();
   }
@@ -148,7 +148,7 @@ export function isText(vNode: unknown): vNode is string | number {
   return typeof vNode === "string" || typeof vNode === "number";
 }
 
-export function isFunction(vNode: unknown): vNode is (...args: any[]) => unknown {
+export function isFunction(vNode: unknown): vNode is (...args: unknown[]) => unknown {
   return typeof vNode === "function";
 }
 

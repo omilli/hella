@@ -1,6 +1,6 @@
-let contextStack: any[] = [];
+let contextStack: unknown[] = [];
 
-export function pushContext(ctx: any) {
+export function pushContext<T>(ctx: T) {
   contextStack.push(ctx);
 }
 

@@ -3,7 +3,7 @@ import { cleanNodeRegistry } from "./registry";
 import { isFunction, resolveNode } from "./mount";
 import type { VNodeValue } from "./types";
 
-type ForEachKey<T> = (item: T, index: number) => any;
+type ForEachKey<T> = (item: T, index: number) => unknown;
 type ForEachUse<T> = (item: T, index: number) => VNodeValue;
 
 interface ForEachOptions<T> {
@@ -20,19 +20,19 @@ export function forEach<T>(
   each: T[] | (() => T[]),
   arg2?: ForEachArg<T>,
   arg3?: ForEachUse<T>
-): any {
+): unknown {
   const use = getForEachUse(arg2!, arg3);
   const key = getForEachKey(arg2!, arg3);
 
   return function (parent: Node) {
     let nodes: Node[] = [];
-    let keys: any[] = [];
+    let keys: unknown[] = [];
 
     effect(() => {
       const arr = isFunction(each) ? each() : each || [];
       const newKeys = arr.map((item, i) => key ? key(item, i) : i);
 
-      const oldKeyToIdx = new Map<any, number>();
+      const oldKeyToIdx = new Map<unknown, number>();
       for (let i = 0; i < keys.length; i++) {
         oldKeyToIdx.set(keys[i], i);
       }
@@ -53,9 +53,9 @@ export function forEach<T>(
 function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> | undefined {
   if (typeof arg2 === "string") {
     const keyProp = arg2;
-    return (item: any) => item && item[keyProp];
+    return (item) => item && item[keyProp as keyof T];
   } else if (typeof arg2 === "function" && !arg3) {
-    return (item: any) => item && item.id;
+    return (item) => item && (item as unknown as { id: VNodeValue }).id;
   } else if (typeof arg2 === "object" && arg2.key) {
     return arg2.key;
   }
@@ -90,7 +90,7 @@ function createNode(child: VNodeValue, parent: Node): Node {
   return resolveNode(child);
 }
 
-function removeUnusedNodes(nodes: Node[], keys: any[], newKeys: any[], parent: Node) {
+function removeUnusedNodes(nodes: Node[], keys: unknown[], newKeys: unknown[], parent: Node) {
   for (let i = 0; i < nodes.length; i++) {
     const k = keys[i];
     if (!newKeys.includes(k)) {
@@ -135,8 +135,8 @@ function computeLIS(a: number[]) {
 
 function buildNewNodes<T>(
   arr: T[],
-  newKeys: any[],
-  oldKeyToIdx: Map<any, number>,
+  newKeys: unknown[],
+  oldKeyToIdx: Map<unknown, number>,
   nodes: Node[],
   use: ForEachUse<T>,
   parent: Node

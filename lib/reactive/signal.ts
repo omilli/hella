@@ -18,8 +18,8 @@ export function signal<T>(initial: T): Signal<T> {
       if (!subscribers) subscribers = new Set();
       subscribers.add(currentEffect);
       // Track this signal in the effect's subscriptions
-      if ((currentEffect as any).subscriptions) {
-        (currentEffect as any).subscriptions.add(signalFn);
+      if (currentEffect.subscriptions) {
+        currentEffect.subscriptions.add(signalFn as Signal<unknown>);
       }
     }
 
