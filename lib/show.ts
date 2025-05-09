@@ -1,7 +1,7 @@
 import { effect, pushContext, popContext } from "./reactive";
-import { cleanNodeRegistry, getNodeRegistry } from "./registry";
-import { isFunction, isText, isVNode, renderVNode } from "./mount";
-import type { VNode, VNodeValue } from "./types";
+import { cleanNodeRegistry } from "./registry";
+import { isFunction, resolveNode } from "./mount";
+import type { VNodeValue } from "./types";
 
 interface Show {
   when: boolean | (() => boolean);
@@ -41,16 +41,7 @@ export function show({ when, children }: Show): Node {
       });
 
       let value = children();
-
-      if (isText(value)) {
-        node = document.createTextNode(String(value));
-      } else if (isVNode(value)) {
-        node = renderVNode(value as VNode);
-      } else if (value instanceof Node) {
-        node = value;
-      } else {
-        node = document.createComment("show-empty");
-      }
+      node = resolveNode(value);
 
       popContext();
 

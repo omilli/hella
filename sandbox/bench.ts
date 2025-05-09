@@ -1,4 +1,4 @@
-import { html, signal, type Signal, batch, For, mount, type VNode } from "@hellajs/core";
+import { html, signal, type Signal, batch, forEach, mount, type VNode } from "@hellajs/core";
 
 const { div, table, tbody, tr, td, button, span, a, h1 } = html;
 
@@ -94,24 +94,21 @@ function Bench() {
       ),
       table({ class: 'table table-hover table-striped test-rows' },
         tbody(
-          For({
-            each: rows,
-            key: (row) => row.id,
-            children: (row) =>
-              tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
-                td({ class: 'col-md-1' }, row.id),
-                td({ class: 'col-md-4' },
-                  a({ class: 'lbl', onclick: () => selected.set(row.id) },
-                    row.label
-                  ),
+          forEach(rows, (row) =>
+            tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
+              td({ class: 'col-md-1' }, row.id),
+              td({ class: 'col-md-4' },
+                a({ class: 'lbl', onclick: () => selected.set(row.id) },
+                  row.label
                 ),
-                td({ class: 'col-md-1' },
-                  a({ class: 'remove', onclick: () => remove(row.id) },
-                    span({ class: 'glyphicon glyphicon-remove', ariaHidden: 'true' })
-                  ),
+              ),
+              td({ class: 'col-md-1' },
+                a({ class: 'remove', onclick: () => remove(row.id) },
+                  span({ class: 'glyphicon glyphicon-remove', ariaHidden: 'true' })
                 ),
-              )
-          })
+              ),
+            )
+          )
         ),
       ),
       span({ class: 'preloadicon glyphicon glyphicon-remove' }, ''),

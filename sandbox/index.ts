@@ -1,6 +1,6 @@
 import "./bench"
 
-// import { html, signal, mount, type Signal, effect, For, Show } from "@hellajs/core";
+// import { html, signal, mount, type Signal, effect, forEach, Show } from "@hellajs/core";
 
 // const { div, button, p, span } = html;
 
@@ -38,7 +38,7 @@ import "./bench"
 //     }),
 //     button({ onclick: () => showFoo.set(!showFoo()) }, "Toggle Foo"),
 //     div(
-//       For({
+//       forEach({
 //         each: items,
 //         children: (item) => html.span(item)
 //       })

@@ -3,5 +3,5 @@ export { html } from './html';
 export { type VNode } from './types';
 export { mount } from './mount';
 export { registerDelegatedEvent, setNodeHandler } from "./events";
-export { For } from "./For";
-export { Show } from "./Show";
+export { forEach } from "./forEach";
+export { show } from "./show";

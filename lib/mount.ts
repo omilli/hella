@@ -13,7 +13,19 @@ export function mount(vNode: VNode | (() => VNode)) {
   root?.replaceChildren(element);
 }
 
-export function renderVNode(vNode: VNode): HTMLElement {
+export function resolveNode(value: VNodeValue): Node {
+  if (isText(value)) {
+    return document.createTextNode(String(value));
+  } else if (isVNode(value)) {
+    return renderVNode(value);
+  } else if (value instanceof Node) {
+    return value;
+  } else {
+    return document.createComment("empty");
+  }
+}
+
+function renderVNode(vNode: VNode): HTMLElement {
   while (isFunction(vNode)) {
     vNode = vNode() as VNode;
   }
