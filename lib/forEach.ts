@@ -3,26 +3,15 @@ import { cleanNodeRegistry } from "./registry";
 import { isFunction, isText, resolveNode } from "./mount";
 import type { VNodeValue } from "./types";
 
-type ForEachKey<T> = (item: T, index: number) => unknown;
-type ForEachUse<T> = (item: T, index: number) => VNodeValue;
-
-interface ForEachOptions<T> {
-  use: ForEachUse<T>;
-  key?: ForEachKey<T>;
-}
-
-type ForEachArg<T> =
-  | ForEachOptions<T>
-  | ForEachUse<T>
-  | string;
+type ForEach<T> = (item: T, index: number) => VNodeValue;
 
 export function forEach<T>(
   each: T[] | (() => T[]),
-  arg2?: ForEachArg<T>,
-  arg3?: ForEachUse<T>
+  arg2: ForEach<T> | keyof T,
+  arg3?: ForEach<T>
 ) {
-  const use = getForEachUse(arg2!, arg3);
-  const key = getForEachKey(arg2!, arg3);
+  const use = getForEachUse(arg2, arg3);
+  const key = getForEachKey(arg2);
 
   return function (parent: Node) {
     let nodes: Node[] = [];
@@ -68,27 +57,24 @@ export function forEach<T>(
   };
 }
 
-function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> {
+// Only allow string or undefined for key
+function getForEachKey<T>(arg2: ForEach<T> | keyof T): ForEach<T> | undefined {
   if (isText(arg2)) {
     const keyProp = arg2;
     return (item, _i) => item && item[keyProp as keyof T];
-  } else if (typeof arg2 === "object" && arg2 && (arg2 as ForEachOptions<T>).key) {
-    return (arg2 as ForEachOptions<T>).key as ForEachKey<T>;
   }
-
+  // fallback: use id if present, else item value
   return (item: any, i) =>
     (typeof item === "object" && item !== null && "id" in item)
       ? item.id
       : item;
 }
 
-function getForEachUse<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachUse<T> {
+function getForEachUse<T>(arg2: ForEach<T> | keyof T, arg3?: ForEach<T>): ForEach<T> {
   if (isText(arg2)) {
     return arg3!;
-  } else if (isFunction(arg2)) {
-    return arg2 as ForEachUse<T>;
   } else {
-    return (arg2 as ForEachOptions<T>).use;
+    return arg2 as ForEach<T>;
   }
 }
 
@@ -158,7 +144,7 @@ function buildNewNodes<T>(
   newKeys: unknown[],
   oldKeyToIdx: Map<unknown, number>,
   nodes: Node[],
-  use: ForEachUse<T>,
+  use: ForEach<T>,
   parent: Node
 ): Node[] {
   const newNodes: Node[] = [];
