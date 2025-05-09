@@ -1,4 +1,4 @@
-import { effect, pushContext, popContext } from "./reactive";
+import { effect, pushScope, popScope } from "./reactive";
 import { cleanNodeRegistry } from "./registry";
 import { isFunction, resolveNode } from "./mount";
 import type { VNodeValue } from "./types";
@@ -34,7 +34,7 @@ export function show({ when, children }: Show): Node {
       let node: Node;
       let registryCleanup: (() => void) | null = null;
 
-      pushContext({
+      pushScope({
         registerEffect: (cleanup: () => void) => {
           registryCleanup = cleanup;
         }
@@ -43,7 +43,7 @@ export function show({ when, children }: Show): Node {
       let value = children();
       node = resolveNode(value);
 
-      popContext();
+      popScope();
 
       if (placeholder.parentNode) {
         placeholder.parentNode.replaceChild(node, placeholder);

@@ -1,7 +1,7 @@
 import type { Signal } from "./signal";
-import { getCurrentContext } from "./context";
+import { getCurrentScope } from "./scope";
 
-export interface EffectContext {
+export interface EffectScope {
   registerEffect: (fn: () => void) => void;
   cleanup?: () => void;
 }
@@ -73,7 +73,7 @@ export function effect(fn: () => void): () => void {
     }
   };
 
-  const ctx = getCurrentContext() as EffectContext;
+  const ctx = getCurrentScope() as EffectScope;
   if (ctx && typeof ctx.registerEffect === "function") {
     ctx.registerEffect(() => cleanup());
   }

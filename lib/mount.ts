@@ -1,5 +1,5 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
-import { effect, pushContext, popContext, type EffectContext } from "./reactive";
+import { effect, pushScope, popScope, type EffectScope } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 import { getNodeRegistry, cleanNodeRegistry } from "./registry";
 
@@ -33,7 +33,7 @@ function renderVNode(vNode: VNode): HTMLElement {
   const element = document.createElement(tag as string);
 
   const registry = getNodeRegistry(element);
-  pushContext<EffectContext>({
+  pushScope<EffectScope>({
     registerEffect: (cleanup: () => void) => {
       registry.effects.add(cleanup);
     }
@@ -64,7 +64,7 @@ function renderVNode(vNode: VNode): HTMLElement {
 
   children?.forEach((child) => handleChild(element, element, child));
 
-  popContext();
+  popScope();
 
   return element;
 }

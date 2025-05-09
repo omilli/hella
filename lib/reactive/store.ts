@@ -1,5 +1,5 @@
 import { signal, type Signal } from "./signal";
-import { pushContext, popContext } from "./context";
+import { pushScope, popScope } from "./scope";
 
 // Utility to check if a value is a plain object
 const isPlainObject = (value: unknown): value is object =>
@@ -25,8 +25,8 @@ export type Store<T extends object = {}> = NestedStore<T> & {
 };
 
 export function store<T extends object = {}>(initial: T): Store<T> {
-  // Create a new context for this store
-  const ctx = pushContext("store");
+  // Create a new scope for this store
+  const ctx = pushScope("store");
   const result: Store<T> = {
     computed() {
       const computedObj = {} as T;
@@ -65,11 +65,11 @@ export function store<T extends object = {}>(initial: T): Store<T> {
       }
     },
     cleanup: () => {
-      popContext(); // Cleans up all signals/effects in this store's context
+      popScope(); // Cleans up all signals/effects in this store's scope
     },
   } as Store<T>;
 
-  // Populate properties within the store's context
+  // Populate properties within the store's scope
   for (const [key, value] of Object.entries(initial)) {
     const typedKey = key as keyof T;
     if (isPlainObject(value)) {
@@ -80,7 +80,7 @@ export function store<T extends object = {}>(initial: T): Store<T> {
     }
   }
 
-  popContext(); // Finalize context setup
+  popScope(); // Finalize scope setup
 
   return result;
 }
