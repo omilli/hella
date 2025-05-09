@@ -54,7 +54,7 @@ function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey
   if (isText(arg2)) {
     const keyProp = arg2;
     return (item) => item && item[keyProp as keyof T];
-  } else if (isFunction(arg3) && !arg3) {
+  } else if (isFunction(arg2) && !arg3) {
     return (item) => item && (item as VNode['props']).id;
   } else if (typeof arg2 === "object" && arg2.key) {
     return arg2.key;
