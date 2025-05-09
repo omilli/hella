@@ -60,15 +60,7 @@ function Bench() {
   };
 
   const remove = (id: number) => {
-    rows.set(rows().filter(row => {
-      const shouldKeep = row.id !== id;
-
-      if (!shouldKeep) {
-        row.label.cleanup();
-      }
-
-      return shouldKeep;
-    }));
+    rows.set(rows().filter(row => row.id !== id));
   }
 
   const clear = () => {
