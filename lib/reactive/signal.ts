@@ -13,16 +13,13 @@ export function signal<T>(initial: T): Signal<T> {
 
   const signalFn = () => {
     const currentEffect = getCurrentEffect();
-
     if (currentEffect) {
       if (!subscribers) subscribers = new Set();
       subscribers.add(currentEffect);
-      // Track this signal in the effect's subscriptions
       if (currentEffect.subscriptions) {
         currentEffect.subscriptions.add(signalFn as Signal<unknown>);
       }
     }
-
     return value;
   };
 
@@ -41,7 +38,14 @@ export function signal<T>(initial: T): Signal<T> {
     subscribers = null;
   };
 
-  // Add unsubscribe method
+  signalFn.subscribe = (fn: () => void) => {
+    if (!subscribers) subscribers = new Set();
+    subscribers.add(fn);
+    return () => {
+      subscribers?.delete(fn);
+    };
+  };
+
   signalFn.unsubscribe = (fn: () => void) => {
     subscribers?.delete(fn);
   };
