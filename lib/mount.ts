@@ -1,7 +1,7 @@
-import { registerDelegatedEvent, setNodeHandler } from "./events";
+import { setNodeHandler } from "./events";
 import { effect, pushScope, popScope, type EffectScope } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
-import { nodeRegistry, cleanNodeRegistry } from "./registry";
+import { nodeRegistry, cleanNodeRegistry, addRegistryEffect } from "./registry";
 
 export function mount(vNode: VNode | (() => VNode)) {
   if (typeof vNode === "function") {
@@ -34,8 +34,7 @@ function renderVNode(vNode: VNode): HTMLElement {
 
   pushScope<EffectScope>({
     registerEffect: (cleanup: () => void) => {
-      const registry = nodeRegistry(element);
-      registry.effects.add(cleanup);
+      addRegistryEffect(element, cleanup);
     }
   });
 
@@ -44,7 +43,6 @@ function renderVNode(vNode: VNode): HTMLElement {
     Object.entries(props).forEach(([key, value]) => {
       if (key.startsWith("on")) {
         const event = key.slice(2).toLowerCase();
-        registerDelegatedEvent(event);
         setNodeHandler(element, event, value as EventListener);
         return;
       }
@@ -54,7 +52,7 @@ function renderVNode(vNode: VNode): HTMLElement {
           renderProps(element, key, value());
           cleanNodeRegistry();
         });
-        nodeRegistry(element).effects.add(propCleanup);
+        addRegistryEffect(element, propCleanup);
         return;
       }
 
@@ -109,7 +107,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
       cleanNodeRegistry();
     });
 
-    nodeRegistry(root).effects.add(cleanup);
+    addRegistryEffect(root, cleanup);
     return;
   }
 

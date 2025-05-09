@@ -1,6 +1,6 @@
 interface NodeRegistry {
-  effects: Set<() => void>;
-  handlers: Map<string, EventListener>;
+  effects?: Set<() => void>;
+  events?: Map<string, EventListener>;
 }
 
 const registry = new Map<Node, NodeRegistry>();
@@ -9,10 +9,7 @@ export function nodeRegistry(node: Node): NodeRegistry {
   let nodeRef = registry.get(node);
 
   if (!nodeRef) {
-    registry.set(node, {
-      effects: new Set(),
-      handlers: new Map(),
-    });
+    registry.set(node, {});
 
     return nodeRegistry(node);
   }
@@ -20,15 +17,37 @@ export function nodeRegistry(node: Node): NodeRegistry {
   return nodeRef;
 }
 
+export function getNodeRegistry(node: Node): NodeRegistry | undefined {
+  return registry.get(node);
+}
+
+export function addRegistryEvent(node: Node, type: string, handler: EventListener) {
+  const events = nodeRegistry(node).events;
+  if (!events) {
+    nodeRegistry(node).events = new Map();
+  }
+  nodeRegistry(node).events?.set(type, handler);
+}
+
+export function addRegistryEffect(node: Node, effect: () => void) {
+  const effects = nodeRegistry(node).effects;
+  if (!effects) {
+    nodeRegistry(node).effects = new Set();
+  }
+  nodeRegistry(node).effects?.add(effect);
+}
+
 let isRunning = false;
 
 export function cleanNodeRegistry(node?: Node) {
   if (node) {
-    const { effects, handlers } = nodeRegistry(node);
+    const { effects, events } = nodeRegistry(node);
     if (effects) {
       effects.forEach(fn => fn());
       effects.clear();
-      handlers.clear();
+    }
+    if (events) {
+      events?.clear();
     }
     registry.delete(node);
   }
@@ -43,7 +62,6 @@ export function cleanNodeRegistry(node?: Node) {
         cleanNodeRegistry(node);
       }
     });
-
     isRunning = false;
   })
 }
