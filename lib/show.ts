@@ -3,12 +3,12 @@ import { cleanNodeRegistry, getNodeRegistry } from "./registry";
 import { isFunction, isText, isVNode, renderVNode } from "./mount";
 import type { VNode, VNodeValue } from "./types";
 
-interface ShowProps {
+interface Show {
   when: boolean | (() => boolean);
   children: () => VNodeValue;
 }
 
-export function Show({ when, children }: ShowProps): Node {
+export function show({ when, children }: Show): Node {
   let currentNode: Node | null = null;
   let cleanupSubtree: (() => void) | null = null;
 
