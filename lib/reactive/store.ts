@@ -24,6 +24,8 @@ export type Store<T extends object = {}> = NestedStore<T> & {
   cleanup: () => void;
 };
 
+const reservedKeys = ["computed", "set", "update", "cleanup"];
+
 export function store<T extends object = {}>(initial: T): Store<T> {
   // Create a new scope for this store
   const ctx = pushScope("store");
@@ -31,7 +33,7 @@ export function store<T extends object = {}>(initial: T): Store<T> {
     computed() {
       const computedObj = {} as T;
       for (const key in this) {
-        if (key.startsWith("")) continue;
+        if (reservedKeys.includes(key)) continue;
         const typedKey = key as keyof T;
         const value = this[typedKey];
         computedObj[typedKey] = (

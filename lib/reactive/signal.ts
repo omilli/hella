@@ -4,6 +4,7 @@ export interface Signal<T> {
   (): T;
   set: (value: T) => void;
   cleanup: () => void;
+  subscribe: (fn: () => void) => () => void
   unsubscribe: (fn: () => void) => void
 }
 

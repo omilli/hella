@@ -75,7 +75,11 @@ function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey
   } else if (typeof arg2 === "object" && arg2 && (arg2 as ForEachOptions<T>).key) {
     return (arg2 as ForEachOptions<T>).key as ForEachKey<T>;
   }
-  return (item: any, i) => (item && typeof item === "object" && "id" in item ? item.id : i);
+
+  return (item: any, i) =>
+    (typeof item === "object" && item !== null && "id" in item)
+      ? item.id
+      : item;
 }
 
 function getForEachUse<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachUse<T> {
