@@ -33,4 +33,13 @@ describe("store", () => {
     user.cleanup();
     // No error on cleanup, signals/effects are cleaned
   });
+
+  it("should update deeply nested store", () => {
+    const user = store({ name: "A", address: { city: "X", zip: "123" } });
+    user.address.update({ zip: "456" });
+    expect(user.address.zip()).toBe("456");
+    user.set({ name: "B", address: { city: "Y", zip: "789" } });
+    expect(user.address.city()).toBe("Y");
+    expect(user.address.zip()).toBe("789");
+  });
 });

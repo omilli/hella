@@ -22,4 +22,17 @@ describe("show", () => {
     await flushEffects();
     expect(document.querySelector("span")?.textContent).toBe("Hidden!");
   });
+
+  it("should render fallback when condition is false", async () => {
+    const visible = signal(false);
+    const vnode = html.div(
+      "Show",
+      show(visible, () => html.span("Visible!"), () => html.span("Hidden!"))
+    );
+    mount(vnode);
+    expect(document.querySelector("span")?.textContent).toBe("Hidden!");
+    visible.set(true);
+    await flushEffects();
+    expect(document.querySelector("span")?.textContent).toBe("Visible!");
+  });
 });

@@ -31,4 +31,14 @@ describe("signal", () => {
     s.set(2);
     expect(called).toBe(0);
   });
+
+  it("should unsubscribe correctly", () => {
+    const s = signal(1);
+    let called = 0;
+    const fn = () => { called++; };
+    s.subscribe(fn);
+    s.unsubscribe(fn);
+    s.set(2);
+    expect(called).toBe(0);
+  });
 });

@@ -16,4 +16,14 @@ describe("batch", () => {
     await flushEffects();
     expect(called).toBe(2); // initial + batch
   });
+
+  it("should reset flushing state if callback throws", () => {
+    expect(() => {
+      batch(() => {
+        throw new Error("fail");
+      });
+    }).toThrow("fail");
+    // If batch throws, it should not leave flushing state set
+    expect(() => batch(() => { })).not.toThrow();
+  });
 });

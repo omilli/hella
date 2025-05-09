@@ -22,4 +22,20 @@ describe("effect", () => {
     await flushEffects();
     expect(val).toBe(1);
   });
+
+  it("should cleanup effect on node removal", async () => {
+    const s = signal(1);
+    let called = 0;
+    const div = document.createElement("div");
+    document.body.append(div);
+    const cleanup = effect(() => {
+      s();
+      called++;
+    });
+    cleanup();
+    div.remove();
+    s.set(2);
+    await flushEffects();
+    expect(called).toBe(1);
+  });
 });

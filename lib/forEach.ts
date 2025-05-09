@@ -34,10 +34,6 @@ export function forEach<T>(
         return;
       }
 
-      if (parent.contains(placeholder)) {
-        parent.removeChild(placeholder);
-      }
-
       const newKeys = arr.map((item, i) => key ? key(item, i) : i);
 
       const oldKeyToIdx = new Map<unknown, number>();

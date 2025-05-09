@@ -29,4 +29,32 @@ describe("mount", () => {
     const el = document.createElement("span");
     expect(resolveNode(el)).toBe(el);
   });
+
+  it("should mount text, vnode, and DOM node children", async () => {
+    const el = document.createElement("span");
+    const vnode = html.div({ id: "foo" }, "foo", html.span("bar"), el);
+    mount(vnode);
+    const div = document.querySelector("#foo");
+    expect(div?.childNodes[0].textContent).toBe("foo");
+    expect(div?.childNodes[1].nodeName).toBe("SPAN");
+    expect(div?.childNodes[2]).toBe(el);
+  });
+
+  it("should mount function child that returns text", () => {
+    mount(html.div(() => "dynamic text"));
+    expect(document.querySelector("div")?.textContent).toBe("dynamic text");
+  });
+
+  it("should mount function child that returns vnode", () => {
+    mount(html.div(() => html.span("dynamic vnode")));
+    expect(document.querySelector("span")?.textContent).toBe("dynamic vnode");
+  });
+
+  it("should set DOM property and attribute", () => {
+    mount(html.input({ value: "foo", type: "text", custom: "bar" }));
+    const input = document.querySelector("input");
+    expect(input?.value).toBe("foo");
+    expect(input?.getAttribute("type")).toBe("text");
+    expect(input?.getAttribute("custom")).toBe("bar");
+  });
 });

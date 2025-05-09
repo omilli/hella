@@ -25,4 +25,15 @@ describe("computed", () => {
     await flushEffects();
     expect(called).toBe(3);
   });
+
+  it("should work with nested signals", async () => {
+    const a = signal(1);
+    const b = signal(2);
+    const c = computed(() => a() + b());
+    expect(c()).toBe(3);
+    a.set(3);
+    b.set(4);
+    await flushEffects();
+    expect(c()).toBe(7);
+  });
 });

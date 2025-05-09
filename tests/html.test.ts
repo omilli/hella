@@ -14,4 +14,11 @@ describe("html", () => {
     expect(frag.tag).toBe("$");
     expect(frag.children).toEqual(["a", "b"]);
   });
+
+  it("should create fragment with props", () => {
+    const frag = html.$({ id: "frag" }, "a", "b");
+    expect(frag.tag).toBe("$");
+    expect(frag.props.id).toBe("frag");
+    expect(frag.children).toEqual(["a", "b"]);
+  });
 });
