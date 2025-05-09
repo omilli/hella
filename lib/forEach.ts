@@ -20,7 +20,7 @@ export function forEach<T>(
   each: T[] | (() => T[]),
   arg2?: ForEachArg<T>,
   arg3?: ForEachUse<T>
-): unknown {
+) {
   const use = getForEachUse(arg2!, arg3);
   const key = getForEachKey(arg2!, arg3);
 
