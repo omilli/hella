@@ -1,7 +1,7 @@
 import { effect } from "./reactive";
 import { cleanNodeRegistry } from "./registry";
-import { isFunction, resolveNode } from "./mount";
-import type { VNodeValue } from "./types";
+import { isFunction, isText, isVNode, resolveNode } from "./mount";
+import type { VNode, VNodeValue } from "./types";
 
 type ForEachKey<T> = (item: T, index: number) => unknown;
 type ForEachUse<T> = (item: T, index: number) => VNodeValue;
@@ -51,11 +51,11 @@ export function forEach<T>(
 
 
 function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> | undefined {
-  if (typeof arg2 === "string") {
+  if (isText(arg2)) {
     const keyProp = arg2;
     return (item) => item && item[keyProp as keyof T];
-  } else if (typeof arg2 === "function" && !arg3) {
-    return (item) => item && (item as unknown as { id: VNodeValue }).id;
+  } else if (isFunction(arg3) && !arg3) {
+    return (item) => item && (item as VNode['props']).id;
   } else if (typeof arg2 === "object" && arg2.key) {
     return arg2.key;
   }
@@ -63,17 +63,17 @@ function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey
 }
 
 function getForEachUse<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachUse<T> {
-  if (typeof arg2 === "string") {
+  if (isText(arg2)) {
     return arg3!;
-  } else if (typeof arg2 === "function") {
-    return arg2;
+  } else if (isFunction(arg2)) {
+    return arg2 as ForEachUse<T>;
   } else {
-    return arg2.use;
+    return (arg2 as ForEachOptions<T>).use;
   }
 }
 
 function createNode(child: VNodeValue, parent: Node): Node {
-  if (typeof child === "function") {
+  if (isFunction(child)) {
     const placeholder = document.createComment("for-dynamic");
     let node: Node = placeholder;
     effect(() => {
