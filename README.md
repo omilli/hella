@@ -1,6 +1,6 @@
 # HellaJS
 
-**A JS-first UI library for modern web apps.**
+**A modern, fine-grained reactive UI library for the web.**
 
 🌐 [HellaJS Documentation](https://hellajs.com)
 
@@ -9,10 +9,11 @@
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/@hellajs/core)](https://bundlephobia.com/package/@hellajs/core)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/omilli/6df7884e21572b4910c2f21edb658e56/raw/hellajs-coverage.json)
 
-
-- **Reactive**: Fine-grained DOM reactivity with signals.
-- **Ergonomic**: Element proxies for pure JS templating.
+- **Reactive**: Fine-grained DOM reactivity with signals and effects.
+- **Ergonomic**: Pure JS templating with element proxies.
 - **Tiny**: Zero dependencies, tree-shakable, and fast.
+
+---
 
 ## Quick Start
 
@@ -25,39 +26,37 @@ npm install @hellajs/core
 ### 2. Counter Example
 
 ```typescript
-import { html, render, signal, Component } from "@hellajs/core";
+import { html, signal, mount } from "@hellajs/core";
 
-const { div, button, H1 } = html;
+const { div, button, h1 } = html;
 
 const count = signal(0);
 
-const Counter = Component(() =>
-  div(
-    H1("Count: ", count),
+function Counter() {
+  return div(
+    h1("Count: ", count),
     button({ onclick: () => count.set(count() + 1) }, "Increment")
-  )
-);
+  );
+}
 
-render(Counter);
+mount(Counter);
 ```
 
 ---
 
-## Core Concepts & API
+## Core API
 
 ### `signal`
 
-Reactive primitives for state.
+Reactive primitive for state.
 
 ```typescript
 import { signal } from "@hellajs/core";
 
 const count = signal(0);
 
-// Read value
 console.log(count()); // 0
 
-// Update value
 count.set(1);
 console.log(count()); // 1
 ```
@@ -138,56 +137,22 @@ const user = store({
   address: { city: "NYC", zip: "10001" }
 });
 
-// Read values
 console.log(user.name()); // "Alice"
 console.log(user.address.city()); // "NYC"
 
-// Update values
 user.name.set("Bob");
 user.address.city.set("LA");
 
-// Partial update
-user.$update({ age: 31, address: { zip: "90001" } });
+user.update({ age: 31, address: { zip: "90001" } });
+user.set({ name: "Eve", age: 22, address: { city: "SF", zip: "94101" } });
 
-// Replace all
-user.$set({ name: "Eve", age: 22, address: { city: "SF", zip: "94101" } });
-
-// Reactivity
 effect(() => {
-  console.log("User:", user.$computed());
+  console.log("User:", user.computed());
 });
+
 user.name.set("Charlie"); // logs updated user object
 
-// Cleanup
-user.$cleanup();
-```
-
----
-
-### `resource`
-
-Async resource for loading/fetching data.
-
-```typescript
-import { resource, effect } from "@hellajs/core";
-
-// Create a resource from a fetcher
-const user = resource(() => fetch("/api/user").then(r => r.json()));
-
-// Use in effect or component
-effect(() => {
-  const { value, loading, error } = user();
-  if (loading) {
-    console.log("Loading...");
-  } else if (error) {
-    console.error("Error:", error);
-  } else if (value) {
-    console.log("User loaded:", value);
-  }
-});
-
-// Manually refetch
-user.refetch();
+user.cleanup();
 ```
 
 ---
@@ -206,79 +171,60 @@ const vnode = div(
   button({ onclick: () => alert("Clicked!") }, "Click Me")
 );
 ```
----
-
-### `component`
-
-Isolate state and reactivity.
-
-```typescript
-import { html, signal, effect, component, render } from "@hellajs/core";
-
-const { div, button } = html;
-
-const Timer = component(() => {
-  const count = signal(0);
-  const interval = setInterval(() => count.set(count() + 1), 1000);
-
-  effect(() => {
-    console.log("Timer:", count());
-  });
-
-  const vnode = div(
-    "Timer: ", count,
-    button({ onclick: () => vnode.cleanup?.() }, "Stop Timer")
-  );
-
-  vnode.cleanup = () => clearInterval(interval);
-  return vnode;
-});
-
-// Create an instance and mount it
-const timerInstance = Timer();
-render(timerInstance);
-
-// Cleanup after 5 seconds
-setTimeout(() => {
-  timerInstance.cleanup?.();
-}, 5000);
-
-```
-
 
 ---
 
-### `list`
+### `forEach`
 
 Keyed list rendering.
 
 ```typescript
-import { html, list, signal } from "@hellajs/core";
-
+import { html, forEach, signal } from "@hellajs/core";
 
 const { ul, li } = html;
 
 const items = signal([1, 2, 3]);
 
 const List = ul(
-  list(items, (item, i) =>
+  forEach(items, (item) =>
     li({ key: item }, `Item ${item}`)
   )
-)
+);
 ```
 
 ---
 
-### `render`
+### `show`
+
+Conditional rendering.
+
+```typescript
+import { html, show, signal } from "@hellajs/core";
+
+const { div } = html;
+const visible = signal(true);
+
+const App = div(
+  show(visible, () => div("Visible!"), () => div("Hidden!"))
+);
+```
+
+---
+
+### `mount`
 
 Mount your app to the DOM.
 
 ```typescript
-import { html, render } from "@hellajs/core";
+import { html, mount } from "@hellajs/core";
 
 const { div } = html;
 
-render(div("Hello, world!"), "#app");
+mount(() => div("Hello, world!"));
 ```
 
 ---
+
+## License
+
+MIT
