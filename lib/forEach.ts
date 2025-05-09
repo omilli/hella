@@ -52,13 +52,15 @@ export function forEach<T>(
 function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> {
   if (isText(arg2)) {
     const keyProp = arg2;
-    return (item, i) => item && item[keyProp as keyof T];
+    return (item, _i) => item && item[keyProp as keyof T];
+  } else if (typeof arg2 === "object" && arg2 && (arg2 as ForEachOptions<T>).key) {
+    return (arg2 as ForEachOptions<T>).key as ForEachKey<T>;
   } else if (isFunction(arg2) && !arg3) {
-    return (_item, i) => i;
-  } else if (typeof arg2 === "object" && arg2.key) {
-    return arg2.key;
+    // Try to use id if present, else fallback to index
+    return (item: any, i) => (item && typeof item === "object" && "id" in item ? item.id : i);
   }
-  return (_item, i) => i;
+  // Fallback: if item has id, use it, else use index
+  return (item: any, i) => (item && typeof item === "object" && "id" in item ? item.id : i);
 }
 
 function getForEachUse<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachUse<T> {
