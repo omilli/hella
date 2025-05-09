@@ -10,61 +10,61 @@ type PartialDeep<T> = {
   [K in keyof T]?: T[K] extends object ? PartialDeep<T[K]> : T[K];
 };
 
-// Type for nested stores (without $cleanup)
+// Type for nested stores (without cleanup)
 type NestedStore<T extends object = {}> = {
   [K in keyof T]: T[K] extends object ? NestedStore<T[K]> : Signal<T[K]>;
 } & {
-  $computed: () => T;
-  $set: (value: T) => void;
-  $update: (partial: PartialDeep<T>) => void;
+  computed: () => T;
+  set: (value: T) => void;
+  update: (partial: PartialDeep<T>) => void;
 };
 
-// Type for root store (with $cleanup)
+// Type for root store (with cleanup)
 export type Store<T extends object = {}> = NestedStore<T> & {
-  $cleanup: () => void;
+  cleanup: () => void;
 };
 
 export function store<T extends object = {}>(initial: T): Store<T> {
   // Create a new context for this store
   const ctx = pushContext("store");
   const result: Store<T> = {
-    $computed() {
+    computed() {
       const computedObj = {} as T;
       for (const key in this) {
-        if (key.startsWith("$")) continue;
+        if (key.startsWith("")) continue;
         const typedKey = key as keyof T;
         const value = this[typedKey];
         computedObj[typedKey] = (
-          typeof value === "function" ? value() : value.$computed()
+          typeof value === "function" ? value() : value.computed()
         ) as T[keyof T];
       }
       return computedObj;
     },
-    $set(newValue: T) {
+    set(newValue: T) {
       for (const [key, value] of Object.entries(newValue)) {
         const typedKey = key as keyof T;
         const current = this[typedKey];
-        if (isPlainObject(value) && "$set" in current) {
-          (current as unknown as Store).$set(value);
+        if (isPlainObject(value) && "set" in current) {
+          (current as unknown as Store).set(value);
         } else {
           (current as Signal<unknown>).set(value);
         }
       }
     },
-    $update(partial: PartialDeep<T>) {
+    update(partial: PartialDeep<T>) {
       for (const [key, value] of Object.entries(partial)) {
         const typedKey = key as keyof T;
         const current = this[typedKey];
         if (value !== undefined) {
-          if (isPlainObject(value) && "$update" in current) {
-            (current as unknown as Store)["$update"](value as object);
+          if (isPlainObject(value) && "update" in current) {
+            (current as unknown as Store)["update"](value as object);
           } else {
             (current as Signal<unknown>).set(value);
           }
         }
       }
     },
-    $cleanup: () => {
+    cleanup: () => {
       popContext(); // Cleans up all signals/effects in this store's context
     },
   } as Store<T>;

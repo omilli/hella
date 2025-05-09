@@ -1,4 +1,4 @@
-import { html, signal, type Signal, batch, forEach, mount, type VNode } from "@hellajs/core";
+import { html, signal, type Signal, batch, forEach, mount } from "@hellajs/core";
 
 const { div, table, tbody, tr, td, button, span, a, h1 } = html;
 
