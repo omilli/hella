@@ -3,12 +3,11 @@ import { cleanNodeRegistry } from "./registry";
 import { isFunction, resolveNode } from "./mount";
 import type { VNodeValue } from "./types";
 
-interface Show {
-  when: boolean | (() => boolean);
-  children: () => VNodeValue;
-}
-
-export function show({ when, children }: Show): Node {
+export function show(
+  when: boolean | (() => boolean),
+  is: () => VNodeValue,
+  not?: () => VNodeValue
+): Node {
   let currentNode: Node | null = null;
   let cleanupSubtree: (() => void) | null = null;
 
@@ -30,28 +29,28 @@ export function show({ when, children }: Show): Node {
       cleanupSubtree = null;
     }
 
-    if (condition) {
-      let node: Node;
-      let registryCleanup: (() => void) | null = null;
+    let node: Node | null = null;
+    let registryCleanup: (() => void) | null = null;
 
+    if (condition ? is : not) {
       pushScope({
         registerEffect: (cleanup: () => void) => {
           registryCleanup = cleanup;
         }
       });
 
-      let value = children();
+      const value = condition ? is() : not?.();
       node = resolveNode(value);
 
       popScope();
 
-      if (placeholder.parentNode) {
+      if (node && placeholder.parentNode) {
         placeholder.parentNode.replaceChild(node, placeholder);
         currentNode = node;
       }
 
       cleanupSubtree = () => {
-        cleanNodeRegistry(node);
+        if (node) cleanNodeRegistry(node);
         if (registryCleanup) registryCleanup();
       };
     }

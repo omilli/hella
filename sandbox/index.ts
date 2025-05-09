@@ -1,6 +1,6 @@
 import "./bench"
 
-// import { html, signal, mount, type Signal, effect, forEach, Show } from "@hellajs/core";
+// import { html, signal, mount, effect, forEach, show } from "@hellajs/core";
 
 // const { div, button, p, span } = html;
 
@@ -30,23 +30,19 @@ import "./bench"
 //     count.set(count() + 1);
 //     items.set([...items(), count()]);
 //   }, 1000);
-//   return div(
-//     { class: count },
-//     Show({
-//       when: showFoo,
-//       children: () => Foo({ label: "Foo" })
-//     }),
+
+//   return div({ class: count },
+//     show(
+//       showFoo,
+//       () => Foo({ label: "Foo" }),
+//       () => div("Not Foo")
+//     ),
 //     button({ onclick: () => showFoo.set(!showFoo()) }, "Toggle Foo"),
 //     div(
-//       forEach({
-//         each: items,
-//         children: (item) => html.span(item)
-//       })
+//       forEach(items, (item) => span(item))
 //     ),
 //     p("Count: ",
-//       span(
-//         count
-//       )
+//       span(count)
 //     ),
 //     button({ onclick: () => count.set(count() + 1) },
 //       "Increment"
@@ -57,9 +53,9 @@ import "./bench"
 //   )
 // }
 
-// // setTimeout(() => {
-// //   root?.replaceChildren("");
-// // }, 5000)
+// setTimeout(() => {
+//   root?.replaceChildren("");
+// }, 5000)
 
 
-// mount(Counter);
+///mount(Counter);
