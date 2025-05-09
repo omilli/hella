@@ -30,23 +30,21 @@ export function forEach<T>(
     const placeholder = document.createComment("forEach-placeholder");
 
     const clearNodes = () => {
-      // Clear all child nodes in one operation
       parent.textContent = "";
       nodes = [];
       keys = [];
       parent.appendChild(placeholder);
+      cleanNodeRegistry();
     };
 
     effect(() => {
       const arr = isFunction(each) ? each() : each || [];
 
-      // Fast path: if the array is empty, clear nodes and return immediately
       if (arr.length === 0) {
         clearNodes();
         return;
       }
 
-      // Remove the placeholder if it exists
       if (parent.contains(placeholder)) {
         parent.removeChild(placeholder);
       }
@@ -76,11 +74,7 @@ function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey
     return (item, _i) => item && item[keyProp as keyof T];
   } else if (typeof arg2 === "object" && arg2 && (arg2 as ForEachOptions<T>).key) {
     return (arg2 as ForEachOptions<T>).key as ForEachKey<T>;
-  } else if (isFunction(arg2) && !arg3) {
-    // Try to use id if present, else fallback to index
-    return (item: any, i) => (item && typeof item === "object" && "id" in item ? item.id : i);
   }
-  // Fallback: if item has id, use it, else use index
   return (item: any, i) => (item && typeof item === "object" && "id" in item ? item.id : i);
 }
 
