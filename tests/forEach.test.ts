@@ -57,16 +57,15 @@ describe("forEach", () => {
   });
 
   it("should support dynamic children (function)", async () => {
-    const items = signal([1]);
-    const signals = [signal("A")];
-    const vnode = html.ul(
-      forEach(items, (item, i) => signals[i])
+    const signals = [signal("A"), signal("B")];
+    const vnode = html.span(
+      forEach(signals, (item) => item)
     );
     mount(vnode);
-    expect(document.querySelector("li")?.textContent).toBe("A");
+    expect(document.querySelector("span")?.textContent).toBe("AB");
     signals[0].set("B");
     await flushEffects();
-    expect(document.querySelector("li")?.textContent).toBe("B");
+    expect(document.querySelector("span")?.textContent).toBe("BB");
   });
 
   it("should support string as key property", async () => {
