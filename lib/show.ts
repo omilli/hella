@@ -13,7 +13,7 @@ export function show(
 
   const placeholder = document.createComment("show");
   const fragment = document.createDocumentFragment();
-  fragment.appendChild(placeholder);
+  fragment.append(placeholder);
 
   effect(() => {
     const condition = isFunction(when) ? when() : when;

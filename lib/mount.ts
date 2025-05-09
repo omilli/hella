@@ -82,7 +82,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
 
   if (isFunction(child)) {
     const placeholder = document.createComment("dynamic");
-    element.appendChild(placeholder);
+    element.append(placeholder);
     let currentNode: Node | null = null;
 
     const cleanup = effect(() => {
@@ -119,12 +119,12 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
   }
 
   if (resolved instanceof Node) {
-    element.appendChild(resolved);
+    element.append(resolved);
     return;
   }
 
   if (isVNode(resolved)) {
-    element.appendChild(renderVNode(resolved));
+    element.append(renderVNode(resolved));
   }
 }
 
@@ -139,7 +139,7 @@ function renderProps(element: HTMLElement, key: string, value: unknown) {
 
 function renderText(element: HTMLElement | DocumentFragment, text: VNodeValue) {
   const textNode = document.createTextNode(text as string);
-  element.appendChild(textNode);
+  element.append(textNode);
 }
 
 export function isText(vNode: unknown): vNode is string | number {
