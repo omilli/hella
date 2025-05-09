@@ -3,34 +3,34 @@ interface NodeRegistry {
   handlers: Map<string, EventListener>;
 }
 
-const nodeRegistry = new Map<Node, NodeRegistry>();
+const registry = new Map<Node, NodeRegistry>();
 
-export function getNodeRegistry(node: Node): NodeRegistry {
-  let registry = nodeRegistry.get(node);
+export function nodeRegistry(node: Node): NodeRegistry {
+  let nodeRef = registry.get(node);
 
-  if (!registry) {
-    nodeRegistry.set(node, {
+  if (!nodeRef) {
+    registry.set(node, {
       effects: new Set(),
       handlers: new Map(),
     });
 
-    return getNodeRegistry(node);
+    return nodeRegistry(node);
   }
 
-  return registry;
+  return nodeRef;
 }
 
 let isRunning = false;
 
 export function cleanNodeRegistry(node?: Node) {
   if (node) {
-    const { effects, handlers } = getNodeRegistry(node);
+    const { effects, handlers } = nodeRegistry(node);
     if (effects) {
       effects.forEach(fn => fn());
       effects.clear();
       handlers.clear();
     }
-    nodeRegistry.delete(node);
+    registry.delete(node);
   }
 
 
@@ -38,7 +38,7 @@ export function cleanNodeRegistry(node?: Node) {
   isRunning = true;
 
   queueMicrotask(() => {
-    nodeRegistry.forEach((_, node) => {
+    registry.forEach((_, node) => {
       if (!node.isConnected) {
         cleanNodeRegistry(node);
       }

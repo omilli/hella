@@ -1,7 +1,7 @@
 import { registerDelegatedEvent, setNodeHandler } from "./events";
 import { effect, pushScope, popScope, type EffectScope } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
-import { getNodeRegistry, cleanNodeRegistry } from "./registry";
+import { nodeRegistry, cleanNodeRegistry } from "./registry";
 
 export function mount(vNode: VNode | (() => VNode)) {
   if (typeof vNode === "function") {
@@ -32,9 +32,9 @@ function renderVNode(vNode: VNode): HTMLElement {
   const { tag, props, children } = vNode;
   const element = document.createElement(tag as string);
 
-  const registry = getNodeRegistry(element);
   pushScope<EffectScope>({
     registerEffect: (cleanup: () => void) => {
+      const registry = nodeRegistry(element);
       registry.effects.add(cleanup);
     }
   });
@@ -54,7 +54,7 @@ function renderVNode(vNode: VNode): HTMLElement {
           renderProps(element, key, value());
           cleanNodeRegistry();
         });
-        getNodeRegistry(element).effects.add(propCleanup);
+        nodeRegistry(element).effects.add(propCleanup);
         return;
       }
 
@@ -109,7 +109,7 @@ function handleChild(root: HTMLElement, element: HTMLElement | DocumentFragment,
       cleanNodeRegistry();
     });
 
-    getNodeRegistry(root).effects.add(cleanup);
+    nodeRegistry(root).effects.add(cleanup);
     return;
   }
 

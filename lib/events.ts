@@ -1,4 +1,4 @@
-import { getNodeRegistry } from "./registry";
+import { nodeRegistry } from "./registry";
 
 const globalListeners = new Set<string>();
 
@@ -9,14 +9,14 @@ export function registerDelegatedEvent(type: string) {
 }
 
 export function setNodeHandler(node: Node, type: string, handler: EventListener) {
-  let { handlers } = getNodeRegistry(node);
+  let { handlers } = nodeRegistry(node);
   handlers?.set(type, handler);
 }
 
 function delegatedHandler(event: Event) {
   let node = event.target as Node | null;
   while (node) {
-    let { handlers } = getNodeRegistry(node);
+    let { handlers } = nodeRegistry(node);
     if (handlers && handlers.has(event.type)) {
       handlers.get(event.type)!.call(node, event);
     }

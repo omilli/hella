@@ -1,7 +1,7 @@
 import { effect } from "./reactive";
 import { cleanNodeRegistry } from "./registry";
-import { isFunction, isText, isVNode, resolveNode } from "./mount";
-import type { VNode, VNodeValue } from "./types";
+import { isFunction, isText, resolveNode } from "./mount";
+import type { VNodeValue } from "./types";
 
 type ForEachKey<T> = (item: T, index: number) => unknown;
 type ForEachUse<T> = (item: T, index: number) => VNodeValue;
