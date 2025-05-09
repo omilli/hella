@@ -51,8 +51,6 @@ mount(Counter);
 Reactive primitive for state.
 
 ```typescript
-import { signal } from "@hellajs/core";
-
 const count = signal(0);
 
 console.log(count()); // 0
@@ -68,8 +66,6 @@ console.log(count()); // 1
 Derived reactive values.
 
 ```typescript
-import { signal, computed } from "@hellajs/core";
-
 const price = signal(10);
 const quantity = signal(2);
 
@@ -88,8 +84,6 @@ console.log(total()); // 40
 Run code in response to reactive changes.
 
 ```typescript
-import { signal, effect } from "@hellajs/core";
-
 const name = signal("Alice");
 
 effect(() => {
@@ -106,8 +100,6 @@ name.set("Bob"); // document.title updates automatically
 Batch multiple updates for performance.
 
 ```typescript
-import { signal, batch, effect } from "@hellajs/core";
-
 const a = signal(1);
 const b = signal(2);
 
@@ -129,8 +121,6 @@ batch(() => {
 Deeply reactive state.
 
 ```typescript
-import { store, effect } from "@hellajs/core";
-
 const user = store({
   name: "Alice",
   age: 30,
@@ -162,8 +152,6 @@ user.cleanup();
 Ergonomic element factories.
 
 ```typescript
-import { html } from "@hellajs/core";
-
 const { div, h1, button } = html;
 
 const vnode = div(
@@ -179,8 +167,6 @@ const vnode = div(
 Keyed list rendering.
 
 ```typescript
-import { html, forEach, signal } from "@hellajs/core";
-
 const { ul, li } = html;
 
 const items = signal([1, 2, 3]);
@@ -199,8 +185,6 @@ const List = ul(
 Conditional rendering.
 
 ```typescript
-import { html, show, signal } from "@hellajs/core";
-
 const { div } = html;
 const visible = signal(true);
 
@@ -216,8 +200,6 @@ const App = div(
 Mount your app to the DOM.
 
 ```typescript
-import { html, mount } from "@hellajs/core";
-
 const { div } = html;
 
 mount(() => div("Hello, world!"));
