@@ -41,10 +41,19 @@ function Bench() {
   const rows = signal<BenchData[]>([]);
   const selected = signal<number | undefined>(undefined);
 
+  const create = (count: number) => {
+    rows.set(buildData(count));
+  }
+
+  const append = (count: number) => {
+    rows.set([...rows(), ...buildData(count)]);
+  }
+
   const update = () => {
     batch(() => {
       for (let i = 0, d = rows(), len = d.length; i < len; i += 10) {
-        d[i].label.set(`${d[i].label()} !!!`);
+        const label = d[i].label;
+        label.set(`${label()} !!!`);
       }
     })
   };
@@ -74,9 +83,9 @@ function Bench() {
           div({ class: 'col-md-6' }, h1('HellaJS Keyed')),
           div({ class: 'col-md-6' },
             div({ class: 'row' },
-              ActionButton('run', 'Create 1,000 rows', () => rows.set(buildData(1000))),
-              ActionButton('runlots', 'Create 10,000 rows', () => rows.set(buildData(10000))),
-              ActionButton('add', 'Append 1,000 rows', () => rows.set([...rows(), ...buildData(1000)])),
+              ActionButton('run', 'Create 1,000 rows', () => create(1000)),
+              ActionButton('runlots', 'Create 10,000 rows', () => create(10000)),
+              ActionButton('add', 'Append 1,000 rows', () => append(1000)),
               ActionButton('update', 'Update every 10th row', () => update()),
               ActionButton('clear', 'Clear', () => clear()),
               ActionButton('swaprows', 'Swap Rows', () => swapRows()),
@@ -87,7 +96,7 @@ function Bench() {
       table({ class: 'table table-hover table-striped test-rows' },
         tbody(
           forEach(rows, (row) =>
-            tr({ key: row.id, 'rows-id': row.id, class: () => (selected() === row.id ? 'danger' : '') },
+            tr({ class: () => (selected() === row.id ? 'danger' : '') },
               td({ class: 'col-md-1' }, row.id),
               td({ class: 'col-md-4' },
                 a({ class: 'lbl', onclick: () => selected.set(row.id) },

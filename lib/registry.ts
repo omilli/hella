@@ -39,7 +39,7 @@ export function cleanNodeRegistry(node?: Node) {
 
   queueMicrotask(() => {
     nodeRegistry.forEach((_, node) => {
-      if (!document.body.contains(node)) {
+      if (!node.isConnected) {
         cleanNodeRegistry(node);
       }
     });
