@@ -3,7 +3,7 @@ import { effect, pushScope, popScope, type EffectScope } from "./reactive";
 import type { VNode, VNodeValue } from "./types";
 import { nodeRegistry, cleanNodeRegistry, addRegistryEffect } from "./registry";
 
-export function mount(vNode: VNode | (() => VNode)) {
+export function mount(vNode: VNode | (() => VNode) | (() => () => VNode)) {
   if (typeof vNode === "function") {
     vNode = vNode();
   }
