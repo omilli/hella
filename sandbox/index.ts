@@ -53,9 +53,5 @@ import "./bench"
 //   )
 // }
 
-// setTimeout(() => {
-//   root?.replaceChildren("");
-// }, 5000)
 
-
-///mount(Counter);
+// mount(Counter);

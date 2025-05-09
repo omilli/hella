@@ -49,17 +49,16 @@ export function forEach<T>(
   };
 }
 
-
-function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> | undefined {
+function getForEachKey<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachKey<T> {
   if (isText(arg2)) {
     const keyProp = arg2;
-    return (item) => item && item[keyProp as keyof T];
+    return (item, i) => item && item[keyProp as keyof T];
   } else if (isFunction(arg2) && !arg3) {
-    return (item) => item && (item as VNode['props']).id;
+    return (_item, i) => i;
   } else if (typeof arg2 === "object" && arg2.key) {
     return arg2.key;
   }
-  return undefined;
+  return (_item, i) => i;
 }
 
 function getForEachUse<T>(arg2: ForEachArg<T>, arg3?: ForEachUse<T>): ForEachUse<T> {
