@@ -27,9 +27,30 @@ export function forEach<T>(
   return function (parent: Node) {
     let nodes: Node[] = [];
     let keys: unknown[] = [];
+    const placeholder = document.createComment("forEach-placeholder");
+
+    const clearNodes = () => {
+      // Clear all child nodes in one operation
+      parent.textContent = "";
+      nodes = [];
+      keys = [];
+      parent.appendChild(placeholder);
+    };
 
     effect(() => {
       const arr = isFunction(each) ? each() : each || [];
+
+      // Fast path: if the array is empty, clear nodes and return immediately
+      if (arr.length === 0) {
+        clearNodes();
+        return;
+      }
+
+      // Remove the placeholder if it exists
+      if (parent.contains(placeholder)) {
+        parent.removeChild(placeholder);
+      }
+
       const newKeys = arr.map((item, i) => key ? key(item, i) : i);
 
       const oldKeyToIdx = new Map<unknown, number>();
